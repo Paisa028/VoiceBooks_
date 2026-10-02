@@ -1,0 +1,36 @@
+/* Makes width and height calculations consistent across the application */
+* {
+  box-sizing: border-box;
+}
+
+/* Removes default browser spacing */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+/* Global styling for the VoiceBooks application */
+body {
+  min-width: 320px;
+  min-height: 100vh;
+
+  /* Main font used throughout the application */
+  font-family: Arial, Helvetica, sans-serif;
+
+  /* Neutral background for the application */
+  background-color: #f5f7f6;
+
+  /* Default text colour */
+  color: #1f2937;
+}
+
+/* Ensures form elements use the same font as the application */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
