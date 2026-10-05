@@ -2,33 +2,36 @@ name: Deploy Application
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     name: Run All Tests
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [24.x]
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
       - name: Install and test backend
         working-directory: backend
         run: |
           npm ci
           npm run test:coverage
-      
+
       - name: Install and test frontend
         working-directory: frontend
         run: |
@@ -39,29 +42,25 @@ jobs:
     name: Deploy Backend
     needs: test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
-          cache: 'npm'
-      
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
       - name: Install dependencies
         working-directory: backend
         run: npm ci --production
-        
+
       - name: Deploy to production
         working-directory: backend
         run: |
-          # Add your deployment commands here
-          # For example, if using a platform like:
-          # - Render: echo "Deploying to Render..."
-          # - Heroku: git push heroku main
-          # - AWS: aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
           echo "Backend deployment would run here"
           echo "Add your specific deployment commands for your hosting provider"
         env:
@@ -71,34 +70,29 @@ jobs:
     name: Deploy Frontend
     needs: test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
-          cache: 'npm'
-      
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-        
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
-        
+
       - name: Deploy to production
         working-directory: frontend
         run: |
-          # Add your frontend deployment commands here
-          # For example:
-          # - Netlify: netlify deploy --prod --dir=dist
-          # - Vercel: vercel --prod
-          # - GitHub Pages: gh-pages -d dist
-          # - AWS S3: aws s3 sync dist/ s3://your-bucket
           echo "Frontend deployment would run here"
           echo "Add your specific deployment commands for your hosting provider"
         env:
