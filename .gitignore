@@ -1,0 +1,10 @@
+
+# macOS
+.DS_Store
+
+# Test coverage
+coverage/
+backend/coverage/
+
+# Generated test files
+backend/tests/integration/unit/

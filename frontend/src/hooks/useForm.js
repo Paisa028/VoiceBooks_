@@ -2,56 +2,114 @@ import { useState } from 'react';
 
 // Server errors for nested fields look like "business.industry".
 const flatten = (errors = {}) =>
-  Object.fromEntries(Object.entries(errors).map(([k, v]) => [k.replace(/^business\./, ''), v]));
+  Object.fromEntries(
+    Object.entries(errors).map(([key, value]) => [
+      key.replace(/^business\./, ''),
+      value,
+    ])
+  );
 
-export function useForm({ initialValues, validate, onSubmit, initialErrors = {} }) {
+export function useForm({
+  initialValues,
+  validate,
+  onSubmit,
+  initialErrors = {},
+}) {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState(initialErrors);
   const [touched, setTouched] = useState({});
-  const [status, setStatus] = useState(null); // { type: 'error' | 'success', message }
+  const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Only show errors for fields the person has already visited.
+  // Only show validation errors for fields that have been touched.
   const showErrors = (nextValues, nextTouched) => {
-    const all = validate(nextValues);
-    setErrors(Object.fromEntries(Object.keys(all).filter((k) => nextTouched[k]).map((k) => [k, all[k]])));
+    const allErrors = validate(nextValues);
+
+    const visibleErrors = Object.fromEntries(
+      Object.keys(allErrors)
+        .filter((key) => nextTouched[key])
+        .map((key) => [key, allErrors[key]])
+    );
+
+    setErrors(visibleErrors);
   };
 
   const setFields = (patch) => {
-    const next = { ...values, ...patch };
-    setValues(next);
-    showErrors(next, touched);
+    const nextValues = {
+      ...values,
+      ...patch,
+    };
+
+    setValues(nextValues);
+    showErrors(nextValues, touched);
   };
 
-  const handleChange = (e) => setFields({ [e.target.name]: e.target.value });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
-  const handleBlur = (e) => {
-    const nextTouched = { ...touched, [e.target.name]: true };
+    setFields({
+      [name]: value,
+    });
+  };
+
+  const handleBlur = (event) => {
+    const { name } = event.target;
+
+    const nextTouched = {
+      ...touched,
+      [name]: true,
+    };
+
     setTouched(nextTouched);
     showErrors(values, nextTouched);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (submitting) return;
-    const form = e.currentTarget;
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    setTouched(Object.fromEntries(Object.keys(values).map((k) => [k, true])));
-    const all = validate(values);
-    setErrors(all);
-    if (Object.keys(all).length) {
-      setStatus({ type: 'error', message: 'Check the highlighted fields and try again.' });
-      requestAnimationFrame(() => form.querySelector('[aria-invalid="true"]')?.focus());
+    // Prevent multiple simultaneous submissions.
+    if (submitting) {
+      return;
+    }
+
+    const form = event.currentTarget;
+
+    const allTouched = Object.fromEntries(
+      Object.keys(values).map((key) => [key, true])
+    );
+
+    setTouched(allTouched);
+
+    const validationErrors = validate(values);
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setStatus({
+        type: 'error',
+        message: 'Check the highlighted fields and try again.',
+      });
+
+      requestAnimationFrame(() => {
+        form?.querySelector?.('[aria-invalid="true"]')?.focus();
+      });
+
       return;
     }
 
     setStatus(null);
     setSubmitting(true);
+
     try {
       await onSubmit(values);
-    } catch (err) {
-      setStatus({ type: 'error', message: err.message || 'Something went wrong. Try again.' });
-      if (err.errors) setErrors(flatten(err.errors));
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error?.message || 'Something went wrong. Try again.',
+      });
+
+      if (error?.errors) {
+        setErrors(flatten(error.errors));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -66,5 +124,17 @@ export function useForm({ initialValues, validate, onSubmit, initialErrors = {} 
     error: errors[name],
   });
 
-  return { values, setFields, status, setStatus, submitting, handleSubmit, field };
+  return {
+    values,
+    errors,
+    touched,
+    setFields,
+    status,
+    setStatus,
+    submitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    field,
+  };
 }

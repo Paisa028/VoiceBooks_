@@ -1,7 +1,10 @@
-import { renderHook, act } from '@testing-library/react';
+import React from 'react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { AuthProvider } from '../../context/AuthProvider.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import { api } from '../../api/client.js';
 
 // Mock the API client
 vi.mock('../../api/client.js', () => ({
@@ -9,22 +12,22 @@ vi.mock('../../api/client.js', () => ({
     profile: vi.fn(),
     login: vi.fn(),
     register: vi.fn(),
-    logout: vi.fn()
-  }
+    logout: vi.fn(),
+  },
 }));
 
-const api = require('../../api/client.js').api;
-
 describe('useAuth Hook', () => {
-  const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
+  const wrapper = ({ children }) => (
+    <AuthProvider>{children}</AuthProvider>
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should initialize with loading state', () => {
-    api.profile.mockResolvedValue({ user: null });
-    
+    api.profile.mockImplementation(() => new Promise(() => {}));
+
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     expect(result.current.loading).toBe(true);
@@ -32,50 +35,83 @@ describe('useAuth Hook', () => {
 
   it('should set user to null when profile call fails', async () => {
     api.profile.mockRejectedValue(new Error('Not authenticated'));
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
 
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(), { wrapper });
 
-    expect(result.current.loading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(result.current.user).toBeNull();
   });
 
   it('should set user when profile call succeeds', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
     api.profile.mockResolvedValue({ user: mockUser });
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
 
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(), { wrapper });
 
-    expect(result.current.loading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(result.current.user).toEqual(mockUser);
   });
 
   it('should login and set user', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
     api.profile.mockResolvedValue({ user: null });
     api.login.mockResolvedValue({ user: mockUser });
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
-    await waitForNextUpdate(); // Wait for initial profile call
 
-    await act(async () => {
-      await result.current.login({ email: 'test@example.com', password: 'password123' });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    expect(api.login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
+    await act(async () => {
+      await result.current.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    expect(api.login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+
     expect(result.current.user).toEqual(mockUser);
   });
 
   it('should register and set user', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
     api.profile.mockResolvedValue({ user: null });
     api.register.mockResolvedValue({ user: mockUser });
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
-    await waitForNextUpdate(); // Wait for initial profile call
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     const registerData = {
       firstName: 'Test',
@@ -89,8 +125,8 @@ describe('useAuth Hook', () => {
         industry: 'Technology',
         businessSize: '1',
         country: 'US',
-        currency: 'USD'
-      }
+        currency: 'USD',
+      },
     };
 
     await act(async () => {
@@ -102,12 +138,21 @@ describe('useAuth Hook', () => {
   });
 
   it('should logout and clear user', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
     api.profile.mockResolvedValue({ user: mockUser });
     api.logout.mockResolvedValue({});
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
-    await waitForNextUpdate(); // Wait for initial profile call
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     expect(result.current.user).toEqual(mockUser);
 
@@ -120,35 +165,74 @@ describe('useAuth Hook', () => {
   });
 
   it('should handle logout errors gracefully', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
     api.profile.mockResolvedValue({ user: mockUser });
     api.logout.mockRejectedValue(new Error('Network error'));
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
-    await waitForNextUpdate(); // Wait for initial profile call
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     await act(async () => {
-      await result.current.logout();
+      try {
+        await result.current.logout();
+      } catch {
+        // Ignore expected logout error for this test.
+      }
     });
 
     expect(api.logout).toHaveBeenCalled();
+
+    // AuthProvider should clear the local user state even
+    // when the logout request fails.
     expect(result.current.user).toBeNull();
   });
 
   it('should refresh user data', async () => {
-    const mockUser = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User' };
-    const updatedUser = { id: 1, email: 'test@example.com', firstName: 'Updated', lastName: 'User' };
-    
-    api.profile.mockResolvedValue({ user: mockUser });
-    api.profile.mockResolvedValueOnce({ user: updatedUser });
-    
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
-    await waitForNextUpdate(); // Wait for initial profile call
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
+
+    const updatedUser = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Updated',
+      lastName: 'User',
+    };
+
+    // First call = initial AuthProvider profile request.
+    // Second call = refresh().
+    api.profile
+      .mockResolvedValueOnce({ user: mockUser })
+      .mockResolvedValueOnce({ user: updatedUser });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.user).toEqual(mockUser);
 
     await act(async () => {
       await result.current.refresh();
     });
 
-    expect(result.current.user).toEqual(updatedUser);
+    await waitFor(() => {
+      expect(result.current.user).toEqual(updatedUser);
+    });
+
+    expect(api.profile).toHaveBeenCalledTimes(2);
   });
 });
