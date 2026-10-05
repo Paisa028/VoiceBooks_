@@ -3,6 +3,9 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 
 const isProd = process.env.NODE_ENV === 'production';
+if (process.env.DATABASE_PROVIDER && !['sqlite', 'firebase'].includes(process.env.DATABASE_PROVIDER)) {
+  throw new Error('DATABASE_PROVIDER must be sqlite or firebase.');
+}
 
 let jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret || jwtSecret.length < 32) {
@@ -12,6 +15,7 @@ if (!jwtSecret || jwtSecret.length < 32) {
 }
 
 const config = {
+  databaseProvider: process.env.DATABASE_PROVIDER || 'sqlite',
   isProd,
   port: Number(process.env.PORT) || 3715,
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
@@ -20,7 +24,7 @@ const config = {
   cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd,
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
   resetTokenTtlMinutes: Number(process.env.RESET_TOKEN_TTL_MINUTES) || 30,
-  databaseFile: path.resolve(process.env.DATABASE_FILE || './data/voicebooks.db'),
+  databaseFile: process.env.DATABASE_FILE === ':memory:' ? ':memory:' : path.resolve(process.env.DATABASE_FILE || './data/voicebooks.db'),
   mail: {
     host: process.env.SMTP_HOST || '',
     port: Number(process.env.SMTP_PORT) || 587,

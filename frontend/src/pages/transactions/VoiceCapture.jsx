@@ -122,7 +122,7 @@ function VoiceCapture() {
         );
 
         const response = await fetch(
-          "http://localhost:3715/api/transcriptions",
+          "/api/transcriptions",
           {
             method: "POST",
             body: formData,
@@ -342,7 +342,7 @@ function VoiceCapture() {
 
 const processNormalTransaction = async () => {
   const response = await fetch(
-    "http://localhost:3715/api/transactions/process",
+    "/api/transactions/process",
     {
       method: "POST",
 
@@ -437,7 +437,7 @@ const processClarificationResponse = async () => {
     .join(". ");
 
   const response = await fetch(
-    "http://localhost:3715/api/transactions/process",
+    "/api/transactions/process",
     {
       method: "POST",
 

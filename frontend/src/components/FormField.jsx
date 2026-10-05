@@ -22,7 +22,7 @@ export default function FormField({ label, name, error, hint, as: Tag = 'input',
           {children}
         </Tag>
         {isPassword && (
-          <button type="button" className="reveal" onClick={() => setReveal((r) => !r)} aria-pressed={reveal}>
+          <button type="button" className="reveal" onClick={() => setReveal((r) => !r)} aria-pressed={reveal} aria-label={`${reveal ? 'Hide' : 'Show'} ${label}`}>
             {reveal ? 'Hide' : 'Show'}
           </button>
         )}

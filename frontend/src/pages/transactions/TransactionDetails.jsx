@@ -38,7 +38,7 @@ function TransactionDetails() {
           setErrorMessage("");
 
           const response = await fetch(
-            `http://localhost:3715/api/transactions/${encodeURIComponent(
+            `/api/transactions/${encodeURIComponent(
               id
             )}`
           );
@@ -54,7 +54,7 @@ function TransactionDetails() {
           }
 
           setTransaction(
-            data.transaction
+            { ...data.transaction, auditLog: data.auditLog || [] }
           );
         } catch (error) {
           console.error(
@@ -224,6 +224,14 @@ function TransactionDetails() {
   return (
     <main className="transaction-page">
       <section className="transaction-container transaction-details-container">
+        {transaction.status === 'returned' && (
+          <section className="alert error" role="status">
+            <p>Accountant feedback: {transaction.rejectionReason}</p>
+            <button type="button" onClick={() => navigate('/transactions/review', { state: { transaction } })}>
+              Correct and resubmit
+            </button>
+          </section>
+        )}
 
         {/* Header */}
         <header className="transaction-header">
@@ -433,7 +441,7 @@ function TransactionDetails() {
           <p className="details-section-description">
             Debit and credit entries
             created when this transaction
-            was posted.
+            was submitted for review.
           </p>
 
           <div className="accounting-table-wrapper">
@@ -490,90 +498,19 @@ function TransactionDetails() {
 
         </section>
 
-        {/* Activity */}
         <section className="details-section">
-
           <h2>Activity Log</h2>
-
           <div className="details-activity">
-
-            {transaction.originalTranscript && (
-              <div className="activity-item">
-                <span className="activity-check">
-                  ✓
-                </span>
-
+            {transaction.auditLog.map(event => (
+              <div className="activity-item" key={event.id}>
                 <div>
-                  <strong>
-                    Captured via Voice
-                  </strong>
-
-                  <p>
-                    Voice transaction
-                    captured and processed
-                    by VoiceBooks.
-                  </p>
+                  <strong>{event.action.replaceAll('_', ' ').toLowerCase()}</strong>
+                  <p>{formatDateTime(event.timestamp)} ? {event.source}</p>
                 </div>
               </div>
-            )}
-
-            <div className="activity-item">
-              <span className="activity-check">
-                ✓
-              </span>
-
-              <div>
-                <strong>
-                  Transaction Reviewed
-                </strong>
-
-                <p>
-                  Transaction information
-                  was reviewed before
-                  posting.
-                </p>
-              </div>
-            </div>
-
-            <div className="activity-item">
-              <span className="activity-check">
-                ✓
-              </span>
-
-              <div>
-                <strong>
-                  Transaction Posted
-                </strong>
-
-                <p>
-                  {formatDateTime(
-                    transaction.postedAt ||
-                      transaction.confirmedAt
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="activity-item">
-              <span className="activity-check">
-                ✓
-              </span>
-
-              <div>
-                <strong>
-                  Audit Record Created
-                </strong>
-
-                <p>
-                  The posting activity
-                  was recorded for audit
-                  purposes.
-                </p>
-              </div>
-            </div>
-
+            ))}
+            {transaction.auditLog.length === 0 && <p>No activity recorded.</p>}
           </div>
-
         </section>
 
         {/* Actions */}

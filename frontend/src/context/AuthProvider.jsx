@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { AuthContext } from './authState.js';
 
@@ -34,13 +34,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await api.logout();
-    } catch {
-      // Clear local authentication state even if the request fails.
-    } finally {
-      setUser(null);
-    }
+    await api.logout();
+    setUser(null);
   }, []);
 
   const refresh = useCallback(async () => {

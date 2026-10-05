@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -182,18 +181,13 @@ describe('useAuth Hook', () => {
     });
 
     await act(async () => {
-      try {
-        await result.current.logout();
-      } catch {
-        // Ignore expected logout error for this test.
-      }
+      await expect(result.current.logout()).rejects.toThrow('Network error');
     });
 
     expect(api.logout).toHaveBeenCalled();
 
-    // AuthProvider should clear the local user state even
-    // when the logout request fails.
-    expect(result.current.user).toBeNull();
+    // A failed server request leaves the session active so the user can retry.
+    expect(result.current.user).toEqual(mockUser);
   });
 
   it('should refresh user data', async () => {

@@ -1,0 +1,13 @@
+specVersion: v1
+serviceId: voicebooks-d7726-service
+location: us-east4
+schema:
+  source: ./schema
+  datasource:
+    postgresql:
+      database: voicebooks-d7726-database
+      schemaValidation: COMPATIBLE
+      cloudSql:
+        instanceId: voicebooks-d7726-instance
+connectorDirs:
+  - ./backend

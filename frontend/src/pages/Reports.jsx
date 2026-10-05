@@ -13,7 +13,7 @@ export default function Reports() {
         setError("");
 
         const response = await fetch(
-          "http://localhost:3715/api/transactions"
+          "/api/transactions?status=approved"
         );
 
         const data = await response.json();
@@ -164,7 +164,7 @@ export default function Reports() {
             </p>
           </div>
 
-          <select
+          <select aria-label="Report period"
             className="reports-period"
             value={period}
             onChange={(event) =>

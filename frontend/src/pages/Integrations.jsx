@@ -29,8 +29,7 @@ export default function Integrations() {
     "Not connected";
 
   const connected =
-    sageStatus === "connected" ||
-    sageStatus === "pending";
+    sageStatus === "connected";
 
   const connectSage = async () => {
     if (!region) {
@@ -84,13 +83,13 @@ export default function Integrations() {
         </header>
 
         {message && (
-          <div className="integration-message success">
+          <div className="integration-message success" role="status">
             {message}
           </div>
         )}
 
         {error && (
-          <div className="integration-message error">
+          <div className="integration-message error" role="alert">
             {error}
           </div>
         )}
@@ -171,7 +170,7 @@ export default function Integrations() {
 
             <div className="integration-region-control">
 
-              <select
+              <select aria-label="Sage region"
                 value={region}
                 onChange={(event) =>
                   setRegion(event.target.value)

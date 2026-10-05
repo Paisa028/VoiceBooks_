@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
+import AccountantAssignment from '../components/AccountantAssignment.jsx';
 
 export default function Settings() {
   const [form, setForm] = useState({
@@ -170,13 +171,13 @@ export default function Settings() {
         {/* MESSAGES */}
 
         {message && (
-          <div className="settings-message settings-success">
+          <div className="settings-message settings-success" role="status">
             {message}
           </div>
         )}
 
         {error && (
-          <div className="settings-message settings-error">
+          <div className="settings-message settings-error" role="alert">
             {error}
           </div>
         )}
@@ -422,6 +423,8 @@ export default function Settings() {
           </div>
 
         </form>
+
+        <AccountantAssignment />
 
       </section>
     </main>

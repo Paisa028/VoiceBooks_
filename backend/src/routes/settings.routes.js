@@ -15,9 +15,9 @@ router.use(authenticate);
 // GET /api/settings
 // --------------------------------------------------
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const user = toPublic(
-    findRowById(req.user.id)
+    await findRowById(req.user.id)
   );
 
   if (!user) {
@@ -35,7 +35,7 @@ router.get('/', (req, res) => {
 // PUT /api/settings
 // --------------------------------------------------
 
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
   const {
     firstName,
     lastName,
@@ -64,7 +64,7 @@ router.put('/', (req, res) => {
     });
   }
 
-  const updatedUser = updateSettings(
+  const updatedUser = await updateSettings(
     req.user.id,
     {
       user: {

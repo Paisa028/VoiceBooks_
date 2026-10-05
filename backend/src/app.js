@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => res.json({ ok: true, databaseProvider: config.databaseProvider }));
 
 // Authentication, user accounts and onboarding
 app.use('/api/auth', authRoutes);

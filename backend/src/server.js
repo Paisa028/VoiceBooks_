@@ -7,7 +7,15 @@ const app = require("./app");
 // Imports the shared configuration
 const { config } = require("./config");
 
-// Starts the VoiceBooks backend
-app.listen(config.port, () => {
-  console.log(`VoiceBooks API running on http://localhost:${config.port}`);
+async function start() {
+  if (config.databaseProvider === 'firebase') {
+    await require('./firebase/client').checkConnection();
+  }
+  app.listen(config.port, () => {
+    console.log(`VoiceBooks API running on http://localhost:${config.port} (${config.databaseProvider})`);
+  });
+}
+start().catch(error => {
+  console.error(`Backend startup failed: ${error.message}`);
+  process.exitCode = 1;
 });

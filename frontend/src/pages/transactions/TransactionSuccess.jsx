@@ -174,7 +174,7 @@ return (
         </h1>
 
         <p className="success-description">
-          The transaction has been confirmed and posted successfully.
+          The transaction has been submitted for accountant review. Approved transactions appear in your ledger and reports.
         </p>
 
       </div>
@@ -301,7 +301,7 @@ return (
             <div className="accounting-preview">
 
               <h2>
-                Accounting Entry Posted
+                Proposed Accounting Entry
               </h2>
 
               <p className="accounting-preview-description">

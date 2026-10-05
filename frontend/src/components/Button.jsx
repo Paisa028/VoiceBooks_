@@ -1,4 +1,3 @@
-import React from 'react';
 import Spinner from './Spinner.jsx';
 
 export default function Button({
@@ -18,7 +17,7 @@ export default function Button({
       aria-busy={loading ? 'true' : undefined}
       {...rest}
     >
-      {loading && <Spinner />}
+      {loading && <Spinner decorative />}
       <span>{children}</span>
     </button>
   );

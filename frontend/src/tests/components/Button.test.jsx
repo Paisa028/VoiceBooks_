@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import Button from '../../components/Button.jsx';
@@ -114,7 +113,9 @@ describe('Button Component', () => {
       </Button>
     );
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Loading Button' });
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button.querySelector('.spinner')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('should pass additional props to button element', () => {

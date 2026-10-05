@@ -1,0 +1,61 @@
+query AccountByEmail($email: String!) @auth(level: NO_ACCESS) { accounts(where: { email: { eq: $email } }, limit: 1) { id email passwordHash firstName lastName phone role onboardingCompleted businessName registrationNumber vatNumber industry businessSize country currency sageStatus sageRegion accountantId createdAt updatedAt } }
+
+query AccountById($id: Int!) @auth(level: NO_ACCESS) { account(id: $id) { id email passwordHash firstName lastName phone role onboardingCompleted businessName registrationNumber vatNumber industry businessSize country currency sageStatus sageRegion accountantId createdAt updatedAt } }
+
+query AllAccounts($limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) { accounts(orderBy: { id: DESC }, limit: $limit, offset: $offset) { id email passwordHash firstName lastName phone role onboardingCompleted businessName registrationNumber vatNumber industry businessSize country currency sageStatus sageRegion accountantId createdAt updatedAt } }
+
+mutation CreateAccount($email: String!, $passwordHash: String!, $firstName: String!, $lastName: String!, $phone: String, $role: String!, $businessName: String!, $registrationNumber: String, $vatNumber: String, $industry: String!, $businessSize: String!, $country: String!, $currency: String!) @auth(level: NO_ACCESS) @transaction { account_insert(data: {email: $email, passwordHash: $passwordHash, firstName: $firstName, lastName: $lastName, phone: $phone, role: $role, businessName: $businessName, registrationNumber: $registrationNumber, vatNumber: $vatNumber, industry: $industry, businessSize: $businessSize, country: $country, currency: $currency}) }
+
+mutation UpdateAccount($id: Int!, $data: Account_Data! @allow(fields: "firstName lastName phone businessName registrationNumber vatNumber industry businessSize country currency sageStatus sageRegion onboardingCompleted updatedAt")) @auth(level: NO_ACCESS) @transaction { account_update(id: $id, data: $data) @check(expr: "this != null", message: "Account not found") }
+
+query OwnerEntries($ownerId: Int!, $limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) { entries(where: { ownerId: { eq: $ownerId } }, orderBy: { id: DESC }, limit: $limit, offset: $offset) { id ownerId description amount supplier category debitAccount creditAccount status originalTranscription supportingInformation payloadJson approvedBy approvedAt rejectionReason createdAt owner { id firstName lastName email businessName } } }
+
+query OwnerEntry($ownerId: Int!, $id: Int!) @auth(level: NO_ACCESS) { entries(where: { ownerId: { eq: $ownerId }, id: { eq: $id } }, limit: 1) { id ownerId description amount supplier category debitAccount creditAccount status originalTranscription supportingInformation payloadJson approvedBy approvedAt rejectionReason createdAt owner { id firstName lastName email businessName } } }
+
+query OwnerAudit($ownerId: Int!, $limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) { audits(where: { ownerId: { eq: $ownerId } }, orderBy: { id: DESC }, limit: $limit, offset: $offset) { id entryId actorId action source timestamp } }
+
+query AssignedAccounts($accountantId: Int!, $limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) { accounts(where: { accountantId: { eq: $accountantId } }, orderBy: { id: DESC }, limit: $limit, offset: $offset) { id email passwordHash firstName lastName phone role onboardingCompleted businessName registrationNumber vatNumber industry businessSize country currency sageStatus sageRegion accountantId createdAt updatedAt } }
+
+query AssignedEntries($accountantId: Int!, $limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) { entries(where: { owner: { accountantId: { eq: $accountantId } } }, orderBy: { id: DESC }, limit: $limit, offset: $offset) { id ownerId description amount supplier category debitAccount creditAccount status originalTranscription supportingInformation payloadJson approvedBy approvedAt rejectionReason createdAt owner { id firstName lastName email businessName } } }
+
+mutation SubmitEntry($ownerId: Int!, $description: String!, $amount: Float!, $supplier: String, $category: String, $debitAccount: String!, $creditAccount: String!, $originalTranscription: String, $supportingInformation: String, $payloadJson: String!, $source: String!) @auth(level: NO_ACCESS) @transaction {
+ entry_insert(data: {ownerId: $ownerId, description: $description, amount: $amount, supplier: $supplier, category: $category, debitAccount: $debitAccount, creditAccount: $creditAccount, originalTranscription: $originalTranscription, supportingInformation: $supportingInformation, payloadJson: $payloadJson})
+ audit_insert(data: { ownerId: $ownerId, entryId_expr: "response.entry_insert.id", actorId: $ownerId, action: "TRANSACTION_SUBMITTED", source: $source })
+}
+
+mutation ResubmitEntry($ownerId: Int!, $id: Int!, $description: String!, $amount: Float!, $supplier: String, $category: String, $debitAccount: String!, $creditAccount: String!, $originalTranscription: String, $supportingInformation: String, $payloadJson: String!, $source: String!) @auth(level: NO_ACCESS) @transaction {
+ entry_updateMany(where: { id: { eq: $id }, ownerId: { eq: $ownerId }, status: { eq: "returned" } }, data: {description: $description, amount: $amount, supplier: $supplier, category: $category, debitAccount: $debitAccount, creditAccount: $creditAccount, originalTranscription: $originalTranscription, supportingInformation: $supportingInformation, payloadJson: $payloadJson, status: "pending_review", approvedBy: null, approvedAt: null, rejectionReason: null}) @check(expr: "this == 1", message: "Entry no longer returned")
+ audit_insert(data: { ownerId: $ownerId, entryId: $id, actorId: $ownerId, action: "TRANSACTION_RESUBMITTED", source: $source })
+}
+
+mutation ReviewEntry($accountantId: Int!, $ownerId: Int!, $id: Int!, $status: String!, $reason: String, $approvedAt: Timestamp, $action: String!) @auth(level: NO_ACCESS) @transaction {
+ entry_updateMany(where: { id: { eq: $id }, ownerId: { eq: $ownerId }, owner: { accountantId: { eq: $accountantId } }, status: { eq: "pending_review" } }, data: { status: $status, approvedBy: $accountantId, approvedAt: $approvedAt, rejectionReason: $reason }) @check(expr: "this == 1", message: "Entry unavailable for review")
+ audit_insert(data: { ownerId: $ownerId, entryId: $id, actorId: $accountantId, action: $action, source: "accountant" })
+}
+
+query Assignment($ownerId: Int!) @auth(level: NO_ACCESS) { account(id: $ownerId) { accountant { id email firstName lastName } } }
+
+mutation SetAssignment($ownerId: Int!, $accountantId: Int!) @auth(level: NO_ACCESS) @transaction {
+ query { account(id: $accountantId) @check(expr: "this != null && this.role == 'accountant'", message: "Accountant not found") { role } }
+ account_update(id: $ownerId, data: { accountantId: $accountantId, updatedAt_expr: "request.time" }) @check(expr: "this != null", message: "Owner not found")
+ audit_insert(data: { ownerId: $ownerId, actorId: $ownerId, action: "ACCOUNTANT_ASSIGNED", source: "settings" })
+}
+
+mutation ClearAssignment($ownerId: Int!) @auth(level: NO_ACCESS) @transaction {
+ account_update(id: $ownerId, data: { accountantId: null, updatedAt_expr: "request.time" }) @check(expr: "this != null", message: "Owner not found")
+ audit_insert(data: { ownerId: $ownerId, actorId: $ownerId, action: "ACCOUNTANT_REMOVED", source: "settings" })
+}
+
+mutation SaveReset($ownerId: Int!, $hash: String!, $expiresAt: Timestamp!) @auth(level: NO_ACCESS) @transaction {
+ resetToken_deleteMany(where: { ownerId: { eq: $ownerId } })
+ resetToken_insert(data: { id: $hash, ownerId: $ownerId, expiresAt: $expiresAt })
+}
+
+query FindReset($hash: String!) @auth(level: NO_ACCESS) { resetToken(id: $hash) { id ownerId expiresAt usedAt createdAt } }
+
+query RecentReset($ownerId: Int!, $since: Timestamp!) @auth(level: NO_ACCESS) { resetTokens(where: { ownerId: { eq: $ownerId }, createdAt: { gt: $since } }, limit: 1) { id } }
+
+mutation ConsumeReset($hash: String!, $ownerId: Int!, $passwordHash: String!, $now: Timestamp!) @auth(level: NO_ACCESS) @transaction {
+ resetToken_updateMany(where: { id: { eq: $hash }, ownerId: { eq: $ownerId }, usedAt: { isNull: true }, expiresAt: { gt: $now } }, data: { usedAt: $now }) @check(expr: "this == 1", message: "Reset token expired or used")
+ account_update(id: $ownerId, data: { passwordHash: $passwordHash, updatedAt: $now }) @check(expr: "this != null", message: "Owner not found")
+}

@@ -15,7 +15,7 @@ export default function AuthLayout({ title, subtitle, steps, footer, wide = fals
           <h2>Say what you spent. VoiceBooks does the bookkeeping.</h2>
           <LedgerSheet />
         </div>
-        <p className="brand-foot">Syncs with Sage Accounting</p>
+        <p className="brand-foot">Voice-enabled bookkeeping for your business</p>
       </aside>
 
       <main className="auth-main">

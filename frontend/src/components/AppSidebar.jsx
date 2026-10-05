@@ -1,13 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { useState } from 'react';
+import Logo from './Logo.jsx';
+import Alert from './Alert.jsx';
 
 export default function AppSidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+  const [error, setError] = useState('');
 
   const displayName =
     user?.name ||
     user?.fullName ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
     user?.email ||
     'VoiceBooks User';
 
@@ -16,9 +22,7 @@ export default function AppSidebar() {
   const isAccountant =
     rawRole.toLowerCase() === 'accountant';
 
-  const roleLabel = isAccountant
-    ? 'Accountant'
-    : 'Business Owner';
+  const roleLabel = user?.roleLabel || rawRole.replaceAll('_', ' ');
 
   const initials = displayName
     .split(' ')
@@ -99,24 +103,22 @@ export default function AppSidebar() {
     : businessOwnerLinks;
 
   async function handleLogout() {
-    await logout();
-    navigate('/login', { replace: true });
+    setSigningOut(true);
+    setError('');
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      setError(error.message || 'Could not sign out. Please try again.');
+    } finally { setSigningOut(false); }
   }
 
   return (
     <aside className="app-sidebar">
 
-      <div className="sidebar-brand">
-        <span className="sidebar-brand-icon">
-          🎙
-        </span>
+      <NavLink to={isAccountant ? '/accountant' : '/dashboard'} className="sidebar-brand" aria-label="VoiceBooks home"><Logo /></NavLink>
 
-        <span className="sidebar-brand-name">
-          VoiceBooks
-        </span>
-      </div>
-
-      <nav className="sidebar-navigation">
+      <nav className="sidebar-navigation" aria-label="Main navigation">
 
         {links.map((link) => (
           <NavLink
@@ -132,7 +134,7 @@ export default function AppSidebar() {
                 : 'sidebar-link'
             }
           >
-            <span className="sidebar-link-icon">
+            <span className="sidebar-link-icon" aria-hidden="true">
               {link.icon}
             </span>
 
@@ -145,6 +147,7 @@ export default function AppSidebar() {
       </nav>
 
       <div className="sidebar-bottom">
+        <Alert type="error">{error}</Alert>
 
         <div className="sidebar-user">
 
@@ -170,9 +173,12 @@ export default function AppSidebar() {
           type="button"
           className="sidebar-signout"
           onClick={handleLogout}
+          disabled={signingOut}
+          aria-busy={signingOut}
+          aria-label={signingOut ? 'Signing out' : 'Sign Out'}
         >
           <span>↪</span>
-          <span>Sign Out</span>
+          <span>{signingOut ? 'Signing out…' : 'Sign Out'}</span>
         </button>
 
       </div>

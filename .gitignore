@@ -1,6 +1,13 @@
 
 # macOS
 .DS_Store
+.firebase/
+.dataconnect/
+pglite-debug.log
+firebase-debug.log
+firebase-deploy.log
+dataconnect-debug.log
+*-service-account.json
 
 # Test coverage
 coverage/

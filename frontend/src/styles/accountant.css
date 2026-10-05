@@ -1,12 +1,12 @@
-:root {
-    --voice-green: #34C759;
+.accountant-page {
+    --voice-green: #0e7a5a;
     --voice-background: #B1E5C9;
     --white: #FFFFFF;
     --black: #000000;
     --border: #D8E4DC;
-    --danger: #D93025;
+    --danger: #b3261e;
     --warning: #E8A317;
-    --muted: #68756E;
+    --muted: #4f655c;
 }
 
 
@@ -15,16 +15,7 @@
 }
 
 
-body {
-    margin: 0;
-    font-family:
-        Inter,
-        Arial,
-        sans-serif;
 
-    background: var(--voice-background);
-    color: var(--black);
-}
 
 
 button,

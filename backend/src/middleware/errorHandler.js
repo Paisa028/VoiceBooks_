@@ -4,6 +4,8 @@ const notFound = (req, res) => res.status(404).json({ message: 'Not found' });
 
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
+  if (err.status && err.status >= 400 && err.status < 500) return res.status(err.status).json({ message: err.message });
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ message: 'Audio must be smaller than 10 MB.' });
   if (err.type === 'entity.parse.failed') return res.status(400).json({ message: 'Request body is not valid JSON.' });
   if (err.type === 'entity.too.large') return res.status(413).json({ message: 'Request body is too large.' });
   console.error(err);

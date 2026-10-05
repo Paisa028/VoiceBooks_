@@ -2,7 +2,7 @@ const service = require("../services/accountantService");
 
 async function dashboard(req, res) {
     try {
-        const data = await service.getDashboard();
+        const data = await service.getDashboard(req.user.id);
 
         res.json({
             success: true,
@@ -21,7 +21,7 @@ async function dashboard(req, res) {
 
 async function clients(req, res) {
     try {
-        const data = await service.getClients();
+        const data = await service.getClients(req.user.id);
 
         res.json({
             success: true,
@@ -38,7 +38,7 @@ async function clients(req, res) {
 
 async function client(req, res) {
     try {
-        const data = await service.getClientById(req.params.id);
+        const data = await service.getClientById(req.params.id, req.user.id);
 
         if (!data) {
             return res.status(404).json({
@@ -63,8 +63,8 @@ async function client(req, res) {
 async function clientTransactions(req, res) {
     try {
         const data = await service.getClientTransactions(
-            req.params.id
-        );
+            req.params.id, req.user.id
+            );
 
         res.json({
             success: true,
@@ -81,7 +81,7 @@ async function clientTransactions(req, res) {
 
 async function pendingReviews(req, res) {
     try {
-        const data = await service.getPendingReviews();
+        const data = await service.getPendingReviews(req.user.id);
 
         res.json({
             success: true,
@@ -100,7 +100,7 @@ async function reviewTransaction(req, res) {
     try {
         const data =
             await service.getTransactionForReview(
-                req.params.id
+                req.params.id, req.user.id
             );
 
         if (!data) {
@@ -137,9 +137,9 @@ async function approve(req, res) {
             message: "Transaction approved successfully"
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(error.status || 500).json({
             success: false,
-            message: error.message
+            message: error.status ? error.message : 'Unable to approve transaction'
         });
     }
 }
@@ -149,7 +149,7 @@ async function reject(req, res) {
     try {
         const { reason } = req.body;
 
-        if (!reason || reason.trim().length < 5) {
+        if (typeof reason !== 'string' || reason.trim().length < 5 || reason.length > 1000) {
             return res.status(400).json({
                 success: false,
                 message:
@@ -170,9 +170,9 @@ async function reject(req, res) {
             message: "Transaction returned to client"
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(error.status || 500).json({
             success: false,
-            message: error.message
+            message: error.status ? error.message : 'Unable to return transaction'
         });
     }
 }
@@ -181,7 +181,7 @@ async function reject(req, res) {
 async function approved(req, res) {
     try {
         const data =
-            await service.getApprovedTransactions();
+            await service.getApprovedTransactions(req.user.id);
 
         res.json({
             success: true,
@@ -199,7 +199,7 @@ async function approved(req, res) {
 async function returned(req, res) {
     try {
         const data =
-            await service.getReturnedTransactions();
+            await service.getReturnedTransactions(req.user.id);
 
         res.json({
             success: true,

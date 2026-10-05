@@ -38,94 +38,99 @@ export default function ClientManagement() {
         );
 
     return (
-        <main className="accountant-page">
+    <main className="accountant-clients-page">
 
-            <header className="page-header">
-                <p className="eyebrow">
+        <header className="accountant-clients-header">
+            <div>
+                <p className="accountant-clients-eyebrow">
                     CLIENT MANAGEMENT
                 </p>
 
-                <h1>
-                    Clients
-                </h1>
+                <h1>Clients</h1>
 
-                <p>
-                    View clients and their accounting
-                    records.
+                <p className="accountant-clients-subtitle">
+                    View clients and their accounting records.
                 </p>
-            </header>
+            </div>
+        </header>
 
-            <section className="content-card">
+        <section className="accountant-clients-card">
 
-                <input
-                    className="search-input"
-                    type="search"
-                    placeholder="Search clients..."
-                    value={search}
-                    onChange={(e) =>
-                        setSearch(e.target.value)
-                    }
-                />
+            <div className="accountant-clients-toolbar">
+                <div className="accountant-client-search">
+                    <span>⌕</span>
 
-                {loading ? (
-                    <div className="loading">
-                        Loading clients...
+                    <input
+                        type="search"
+                        placeholder="Search clients..."
+                        aria-label="Search clients"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className="accountant-client-count">
+                    {filteredClients.length}{" "}
+                    {filteredClients.length === 1 ? "client" : "clients"}
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="accountant-clients-message" role="status">
+                    Loading clients...
+                </div>
+            ) : error ? (
+                <div className="accountant-clients-error" role="alert">
+                    {error}
+                </div>
+            ) : filteredClients.length === 0 ? (
+                <div className="accountant-clients-empty">
+                    <div className="accountant-clients-empty-icon">
+                        ♙
                     </div>
-                ) : error ? (
-                    <div className="error-box">
-                        {error}
-                    </div>
-                ) : filteredClients.length === 0 ? (
+
+                    <h3>No clients found</h3>
+
                     <p>
-                        No clients found.
+                        Businesses assigned to your accounting practice
+                        will appear here.
                     </p>
-                ) : (
-                    <div className="client-grid">
+                </div>
+            ) : (
+                <div className="accountant-client-grid">
+                    {filteredClients.map((client) => (
+                        <button
+                            type="button"
+                            className="accountant-client-card"
+                            key={client.id}
+                            onClick={() =>
+                                navigate(`/accountant/clients/${client.id}`)
+                            }
+                        >
+                            <div className="accountant-client-avatar">
+                                {client.name?.charAt(0).toUpperCase() || "C"}
+                            </div>
 
-                        {filteredClients.map(
-                            client => (
+                            <div className="accountant-client-information">
+                                <h3>{client.name}</h3>
 
-                                <button
-                                    type="button"
-                                    className="client-card"
-                                    key={client.id}
-                                    onClick={() =>
-                                        navigate(
-                                            `/accountant/clients/${client.id}`
-                                        )
-                                    }
-                                >
+                                <p>
+                                    {client.business_name || "Business"}
+                                </p>
 
-                                    <div className="client-avatar">
-                                        {client.name
-                                            ?.charAt(0)
-                                            .toUpperCase()}
-                                    </div>
+                                <small>{client.email}</small>
+                            </div>
 
-                                    <div>
-                                        <h3>
-                                            {client.name}
-                                        </h3>
+                            <span className="accountant-client-arrow">
+                                ›
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            )}
 
-                                        <p>
-                                            {client.business_name}
-                                        </p>
+        </section>
 
-                                        <small>
-                                            {client.email}
-                                        </small>
-                                    </div>
-
-                                </button>
-
-                            )
-                        )}
-
-                    </div>
-                )}
-
-            </section>
-
-        </main>
-    );
+    </main>
+);
 }

@@ -5,9 +5,9 @@ const { listUsers } = require('../models/accounts.js');
 const router = Router();
 router.use(authenticate, requireRole('admin')); // role-based access control
 
-router.get('/users', (req, res) => {
+router.get('/users', async (req, res) => {
   res.json({
-    users: listUsers().map((u) => ({
+    users: (await listUsers()).map((u) => ({
       id: u.id,
       email: u.email,
       name: `${u.first_name} ${u.last_name}`,

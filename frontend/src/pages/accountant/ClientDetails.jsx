@@ -24,7 +24,7 @@ export default function ClientDetails() {
                     ]);
 
                 setClient(clientResult.data);
-                setTransactions(transactionResult.data);
+                setTransactions(transactionResult.data || []);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -37,7 +37,7 @@ export default function ClientDetails() {
 
     if (loading) {
         return (
-            <div className="loading">
+            <div className="loading" role="status">
                 Loading client...
             </div>
         );
@@ -45,45 +45,63 @@ export default function ClientDetails() {
 
     if (error) {
         return (
-            <div className="error-box">
+            <div className="error-box" role="alert">
                 {error}
             </div>
         );
     }
 
-    return (
-        <main className="accountant-page">
+    const formatCurrency = (amount) =>
+        new Intl.NumberFormat("en-ZA", {
+            style: "currency",
+            currency: "ZAR",
+        }).format(Number(amount || 0));
 
-            <header className="page-header">
+    const formatStatus = (status) =>
+        status
+            ?.replaceAll("_", " ")
+            .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+    return (
+        <main className="accountant-client-details-page">
+
+            {/* CLIENT HEADER */}
+            <header className="accountant-client-details-header">
+
                 <div>
-                    <p className="eyebrow">
+                    <p className="accountant-client-details-eyebrow">
                         CLIENT DETAILS
                     </p>
 
                     <h1>{client?.name}</h1>
 
-                    <p>
+                    <p className="accountant-client-business">
                         {client?.business_name}
                     </p>
 
-                    <small>
+                    <p className="accountant-client-email">
                         {client?.email}
-                    </small>
+                    </p>
                 </div>
 
                 <button
-                    className="btn-primary"
+                    type="button"
+                    className="accountant-client-back-button"
                     onClick={() =>
                         navigate("/accountant/clients")
                     }
                 >
-                    Back to Clients
+                    ← Back to Clients
                 </button>
+
             </header>
 
-            <section className="content-card">
 
-                <div className="section-heading">
+            {/* TRANSACTIONS */}
+            <section className="accountant-client-transactions-card">
+
+                <div className="accountant-client-section-heading">
+
                     <div>
                         <h2>Transactions</h2>
 
@@ -91,60 +109,102 @@ export default function ClientDetails() {
                             Accounting transactions for this client.
                         </p>
                     </div>
+
+                    <span className="accountant-client-transaction-count">
+                        {transactions.length}{" "}
+                        {transactions.length === 1
+                            ? "transaction"
+                            : "transactions"}
+                    </span>
+
                 </div>
 
-                {transactions.length === 0 ? (
-                    <p>
-                        No transactions found for this client.
-                    </p>
-                ) : (
-                    <div className="transaction-list">
 
-                        {transactions.map(transaction => (
+                {transactions.length === 0 ? (
+
+                    <div className="accountant-client-empty-state">
+
+                        <div className="accountant-client-empty-icon">
+                            ≡
+                        </div>
+
+                        <h3>No transactions found</h3>
+
+                        <p>
+                            This client does not have any
+                            accounting transactions yet.
+                        </p>
+
+                    </div>
+
+                ) : (
+
+                    <div className="accountant-client-transaction-list">
+
+                        {transactions.map((transaction) => (
+
                             <div
-                                className="transaction-row"
+                                className="accountant-client-transaction-row"
                                 key={transaction.id}
                             >
-                                <div>
+
+                                {/* LEFT */}
+                                <div className="accountant-client-transaction-info">
+
                                     <strong>
                                         {transaction.description}
                                     </strong>
 
                                     <small>
-                                        {transaction.supplier}
+                                        {transaction.supplier ||
+                                            "No supplier"}
                                     </small>
+
                                 </div>
 
-                                <strong>
-                                    R
-                                    {Number(
-                                        transaction.amount
-                                    ).toFixed(2)}
-                                </strong>
 
-                                <span
-                                    className={`status ${transaction.status}`}
-                                >
-                                    {transaction.status}
-                                </span>
+                                {/* RIGHT */}
+                                <div className="accountant-client-transaction-right">
 
-                                {transaction.status ===
-                                    "pending_review" && (
-                                    <button
-                                        className="btn-primary"
-                                        onClick={() =>
-                                            navigate(
-                                                `/accountant/review/${transaction.id}`
-                                            )
-                                        }
+                                    <strong className="accountant-client-amount">
+                                        {formatCurrency(
+                                            transaction.amount
+                                        )}
+                                    </strong>
+
+                                    <span
+                                        className={`accountant-client-status ${transaction.status}`}
                                     >
-                                        Review
-                                    </button>
-                                )}
+                                        {formatStatus(
+                                            transaction.status
+                                        )}
+                                    </span>
+
+                                    {transaction.status ===
+                                        "pending_review" && (
+
+                                        <button
+                                            type="button"
+                                            className="accountant-client-review-button"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/accountant/review/${transaction.id}`
+                                                )
+                                            }
+                                        >
+                                            Review
+                                        </button>
+
+                                    )}
+
+                                </div>
+
                             </div>
+
                         ))}
 
                     </div>
+
                 )}
 
             </section>

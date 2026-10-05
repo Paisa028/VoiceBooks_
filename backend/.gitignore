@@ -12,7 +12,27 @@ data/
 
 # Icon must end with two \r
 Icon
+# Environment variables / secrets
+.env
+.env.*
+backend/.env
+frontend/.env
 
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Build output
+dist/
+build/
 
 # Thumbnails
 ._*

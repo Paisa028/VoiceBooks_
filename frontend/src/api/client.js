@@ -99,6 +99,9 @@ export const api = {
   getTransactions: () =>
     request('/transactions'),
 
+  getAccountant: () => request('/transactions/accountant'),
+  setAccountant: (payload) => request('/transactions/accountant', { method: 'PUT', body: payload }),
+
   getTransactionById: (id) =>
     request(`/transactions/${id}`),
 

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Alert from '../components/Alert.jsx';
 import Spinner from '../components/Spinner.jsx';
 import { useAuth } from '../hooks/useAuth.js';
+import { dashboardSummary } from '../utils/dashboard.js';
+import { SAGE_STATUS_LABELS } from '../utils/constants.js';
 
 function Panel({ title, value, note, wide, children }) {
   return (
@@ -16,65 +18,82 @@ function Panel({ title, value, note, wide, children }) {
   );
 }
 
-function getCurrency(user) {
-  return user?.business?.currency || 'ZAR';
-}
-
 function OwnerDashboard({ user }) {
-  const currency = getCurrency(user);
+  const [state, setState] = useState({
+    loading: true,
+    transactions: [],
+    error: '',
+  });
 
-  const recentTransactions = [
-    {
-      id: 1,
-      direction: 'expense',
-      description: 'Office National — Stationery',
-      date: '12 Aug 2026',
-      category: 'Stationery',
-      amount: 'R 250.00',
-    },
-    {
-      id: 2,
-      direction: 'income',
-      description: 'Bread & Pastry Sales — Daily',
-      date: '11 Aug 2026',
-      category: 'Sales Revenue',
-      amount: '+R 3 850.00',
-    },
-    {
-      id: 3,
-      direction: 'expense',
-      description: 'Cape Town Flour Mills — Flour',
-      date: '11 Aug 2026',
-      category: 'Cost of Sales',
-      amount: 'R 1 200.00',
-    },
-    {
-      id: 4,
-      direction: 'income',
-      description: 'Catering Order — Woolworths',
-      date: '10 Aug 2026',
-      category: 'Sales Revenue',
-      amount: '+R 8 500.00',
-    },
-    {
-      id: 5,
-      direction: 'expense',
-      description: 'Eskom — Electricity',
-      date: '10 Aug 2026',
-      category: 'Utilities',
-      amount: 'R 1 850.00',
-    },
-  ];
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+
+    api
+      .getTransactions()
+      .then((data) => {
+        if (active) {
+          setState({
+            loading: false,
+            transactions: data.transactions,
+            error: '',
+          });
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setState({
+            loading: false,
+            transactions: [],
+            error: error.message,
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user.id, attempt]);
+
+  const now = new Date();
+
+  const summary = dashboardSummary(state.transactions, now);
+
+  const currency = user.business?.currency || 'ZAR';
+
+  const money = (amount) =>
+    new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency,
+    }).format(amount);
+
+  const date = (value) =>
+    new Intl.DateTimeFormat('en-ZA', {
+      dateStyle: 'medium',
+    }).format(new Date(value));
+
+  const month = new Intl.DateTimeFormat('en-ZA', {
+    month: 'long',
+    year: 'numeric',
+  }).format(now);
+
+  if (state.loading) {
+    return (
+      <div className="dashboard-page">
+        <Spinner large />
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
-
       <div className="dashboard-heading-row">
         <div>
           <h1>Dashboard</h1>
 
           <p className="dashboard-subtitle">
-            {user?.business?.name || 'Your Business'} · Monday, 5 October 2026
+            {user.business?.name || 'Your Business'} • {date(now)}
           </p>
         </div>
 
@@ -82,273 +101,194 @@ function OwnerDashboard({ user }) {
           to="/transactions/new"
           className="dashboard-record-button"
         >
-          <span>◉</span>
           Record Transaction
         </Link>
       </div>
 
-      <div className="dashboard-stat-grid">
+      <Alert type="error">{state.error}</Alert>
 
-        <section className="dashboard-stat-card">
-          <div className="dashboard-stat-top">
-            <span>Current Balance</span>
-            <span className="dashboard-change positive">+12.4%</span>
-          </div>
+      {state.error ? (
+        <button
+          type="button"
+          onClick={() => {
+            setState((previous) => ({
+              ...previous,
+              loading: true,
+            }));
 
-          <strong>{currency} 38,450.00</strong>
-          <small>Aug 2026</small>
-        </section>
-
-        <section className="dashboard-stat-card">
-          <div className="dashboard-stat-top">
-            <span>Total Income</span>
-            <span className="dashboard-change positive">+8.1%</span>
-          </div>
-
-          <strong>{currency} 19,350.00</strong>
-          <small>This month</small>
-        </section>
-
-        <section className="dashboard-stat-card">
-          <div className="dashboard-stat-top">
-            <span>Total Expenses</span>
-            <span className="dashboard-change negative">-2.3%</span>
-          </div>
-
-          <strong>{currency} 3,940.00</strong>
-          <small>This month</small>
-        </section>
-
-        <section className="dashboard-stat-card">
-          <div className="dashboard-stat-top">
-            <span>Transactions</span>
-            <span className="dashboard-change positive">+3</span>
-          </div>
-
-          <strong>8</strong>
-          <small>This month</small>
-        </section>
-
-      </div>
-
-      <div className="dashboard-content-grid">
-
-        <section className="dashboard-recent-card">
-
-          <div className="dashboard-card-heading">
-            <h2>Recent Transactions</h2>
-
-            <Link to="/transactions">
-              View all
-            </Link>
-          </div>
-
-          <div className="dashboard-transaction-list">
-
-            {recentTransactions.map((transaction) => (
-              <div
-                className="dashboard-transaction"
-                key={transaction.id}
+            setAttempt((value) => value + 1);
+          }}
+        >
+          Retry dashboard
+        </button>
+      ) : (
+        <>
+          <div className="dashboard-stat-grid">
+            {[
+              [
+                'Net income',
+                money(summary.income - summary.expenses),
+              ],
+              [
+                'Total Income',
+                money(summary.income),
+              ],
+              [
+                'Total Expenses',
+                money(summary.expenses),
+              ],
+              [
+                'Approved transactions',
+                summary.count,
+              ],
+            ].map(([label, value]) => (
+              <section
+                className="dashboard-stat-card"
+                key={label}
               >
-
-                <div
-                  className={`dashboard-transaction-icon ${
-                    transaction.direction === 'income'
-                      ? 'income'
-                      : 'expense'
-                  }`}
-                >
-                  {transaction.direction === 'income' ? '↑' : '↓'}
+                <div className="dashboard-stat-top">
+                  {label}
                 </div>
 
-                <div className="dashboard-transaction-info">
-                  <strong>{transaction.description}</strong>
+                <strong>{value}</strong>
 
-                  <span>
-                    {transaction.date} · {transaction.category}
-                  </span>
-                </div>
-
-                <div className="dashboard-transaction-amount">
-                  <strong
-                    className={
-                      transaction.direction === 'income'
-                        ? 'income-text'
-                        : ''
-                    }
-                  >
-                    {transaction.amount}
-                  </strong>
-
-                  <span>✓ Sage Synced</span>
-                </div>
-
-              </div>
+                <small>
+                  {month} • Approved entries
+                </small>
+              </section>
             ))}
-
           </div>
 
-          <Link
-            to="/transactions"
-            className="dashboard-all-transactions"
-          >
-            View all transactions →
-          </Link>
+          <div className="dashboard-content-grid">
+            <section className="dashboard-recent-card">
+              <div className="dashboard-card-heading">
+                <h2>Recent Transactions</h2>
 
-        </section>
-
-        <div className="dashboard-right-column">
-
-          <section className="dashboard-side-card">
-
-            <div className="dashboard-card-heading">
-              <h2>Income vs Expenses</h2>
-              <span>Aug 2026</span>
-            </div>
-
-            <div className="dashboard-chart-legend">
-              <span>
-                <i className="income-dot" />
-                Income
-              </span>
-
-              <span>
-                <i className="expense-dot" />
-                Expenses
-              </span>
-            </div>
-
-            <div className="dashboard-chart-placeholder">
-              <div className="dashboard-chart-bars">
-                <span style={{ height: '38%' }} />
-                <span style={{ height: '55%' }} />
-                <span style={{ height: '47%' }} />
-                <span style={{ height: '70%' }} />
+                <Link to="/transactions">
+                  View all
+                </Link>
               </div>
 
-              <div className="dashboard-chart-labels">
-                <span>W1</span>
-                <span>W2</span>
-                <span>W3</span>
-                <span>W4</span>
+              {state.transactions.length === 0 && (
+                <p>
+                  No transactions yet. Record your first
+                  transaction to get started.
+                </p>
+              )}
+
+              <div className="dashboard-transaction-list">
+                {state.transactions
+                  .slice(0, 5)
+                  .map((transaction) => (
+                    <div
+                      className="dashboard-transaction"
+                      key={transaction.id}
+                    >
+                      <div className="dashboard-transaction-info">
+                        <Link
+                          to={
+                            '/transactions/' +
+                            transaction.id
+                          }
+                        >
+                          {transaction.description}
+                        </Link>
+
+                        <span>
+                          {date(
+                            transaction.transactionDate
+                          )}{' '}
+                          •{' '}
+                          {transaction.accountCategory ||
+                            'Uncategorised'}
+                        </span>
+                      </div>
+
+                      <div className="dashboard-transaction-amount">
+                        <strong>
+                          {money(transaction.amount)}
+                        </strong>
+
+                        <span>
+                          {transaction.status.replaceAll(
+                            '_',
+                            ' '
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
               </div>
+            </section>
+
+            <div className="dashboard-right-column">
+              <section className="dashboard-side-card">
+                <h2>Income vs Expenses</h2>
+
+                <p>
+                  {month} • Approved entries
+                </p>
+
+                <dl className="dashboard-totals">
+                  <dt>Income</dt>
+                  <dd>{money(summary.income)}</dd>
+
+                  <dt>Expenses</dt>
+                  <dd>{money(summary.expenses)}</dd>
+                </dl>
+
+                <p>
+                  {summary.pending} pending review •{' '}
+                  {summary.returned} returned
+                </p>
+
+                <Link to="/reports">
+                  View reports
+                </Link>
+              </section>
+
+              <section className="dashboard-side-card">
+                <h2>Sage Accounting</h2>
+
+                <p>
+                  {SAGE_STATUS_LABELS[
+                    user.business?.sageStatus
+                  ] || 'Not connected'}
+                </p>
+
+                <p>
+                  Synchronization is not available yet.
+                </p>
+
+                <Link
+                  to="/integrations"
+                  className="dashboard-manage-button"
+                >
+                  Manage Integration
+                </Link>
+              </section>
+
+              <section className="dashboard-side-card">
+                <h2>Quick Actions</h2>
+
+                <div className="dashboard-quick-actions">
+                  <Link to="/transactions/manual">
+                    Manual Entry
+                  </Link>
+
+                  <Link to="/ledger">
+                    View Ledger
+                  </Link>
+
+                  <Link to="/reports">
+                    View Reports
+                  </Link>
+                </div>
+              </section>
             </div>
-
-          </section>
-
-          <section className="dashboard-side-card">
-
-            <div className="dashboard-card-heading">
-              <h2>Sage Sync</h2>
-
-              <span className="dashboard-connected">
-                ● Connected
-              </span>
-            </div>
-
-            <div className="dashboard-sage-row">
-              <span>Company</span>
-              <strong>{user?.business?.name || 'Your Business'}</strong>
-            </div>
-
-            <div className="dashboard-sage-row">
-              <span>Last Sync</span>
-              <strong>12 Aug, 14:35</strong>
-            </div>
-
-            <div className="dashboard-sage-row">
-              <span>Records Synced</span>
-              <strong>7 / 8</strong>
-            </div>
-
-            <Link
-              to="/integrations"
-              className="dashboard-manage-button"
-            >
-              Manage Integration
-            </Link>
-
-          </section>
-
-          <section className="dashboard-side-card">
-
-            <div className="dashboard-card-heading">
-              <h2>Quick Actions</h2>
-            </div>
-
-            <div className="dashboard-quick-actions">
-
-              <Link to="/transactions/manual">
-                <span>✎</span>
-                Manual Entry
-              </Link>
-
-              <Link to="/ledger">
-                <span>☷</span>
-                View Ledger
-              </Link>
-
-              <Link to="/reports">
-                <span>↗</span>
-                Generate Report
-              </Link>
-
-            </div>
-
-          </section>
-
-        </div>
-
-      </div>
-
-    </div>
-  );
-}
-
-function AccountantDashboard() {
-  return (
-    <div className="panels">
-      <Panel
-        title="Clients"
-        value="0"
-        note="Clients you manage will appear here."
-      />
-
-      <Panel
-        title="Reviews waiting"
-        value="0"
-        note="Entries that need your sign-off."
-      />
-
-      <Panel
-        title="Reports due"
-        value="0"
-        note="Upcoming VAT and year-end deadlines."
-      />
-    </div>
-  );
-}
-
-function BookkeeperDashboard() {
-  return (
-    <div className="panels">
-      <Panel
-        title="Entries to capture"
-        value="0"
-        note="Transactions waiting to be recorded."
-      />
-
-      <Panel
-        title="To categorise"
-        value="0"
-        note="Entries missing an account."
-      />
-
-      <Panel
-        title="Bank lines to match"
-        value="0"
-        note="Statement lines without a matching entry."
-      />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -361,7 +301,8 @@ function AdminDashboard() {
   });
 
   useEffect(() => {
-    api.adminUsers()
+    api
+      .adminUsers()
       .then((data) =>
         setState({
           loading: false,
@@ -380,9 +321,7 @@ function AdminDashboard() {
 
   return (
     <div className="panels">
-
       <Panel wide title="Recent accounts">
-
         <Alert type="error">
           {state.error}
         </Alert>
@@ -391,9 +330,7 @@ function AdminDashboard() {
           <Spinner />
         ) : (
           <div className="table-wrap">
-
             <table className="table">
-
               <thead>
                 <tr>
                   <th>Name</th>
@@ -406,51 +343,38 @@ function AdminDashboard() {
               <tbody>
                 {state.users.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.name}</td>
+                    <td>
+                      {user.first_name}{' '}
+                      {user.last_name}
+                    </td>
+
                     <td>{user.email}</td>
                     <td>{user.role}</td>
-                    <td>{user.business ?? '-'}</td>
+
+                    <td>
+                      {user.business_name ?? '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
-
             </table>
-
           </div>
         )}
-
       </Panel>
-
     </div>
   );
 }
 
-const DASHBOARDS = {
-  business_owner: {
-    View: OwnerDashboard,
-  },
-
-  accountant: {
-    View: AccountantDashboard,
-  },
-
-  bookkeeper: {
-    View: BookkeeperDashboard,
-  },
-
-  admin: {
-    View: AdminDashboard,
-  },
-};
-
 export default function Dashboard() {
   const { user } = useAuth();
 
-  const role = user?.role || 'business_owner';
+  if (user.role === 'accountant') {
+    return <Navigate to="/accountant" replace />;
+  }
 
-  const { View } =
-    DASHBOARDS[role] ||
-    DASHBOARDS.business_owner;
+  if (user.role === 'admin') {
+    return <AdminDashboard />;
+  }
 
-  return <View user={user} />;
+  return <OwnerDashboard user={user} />;
 }

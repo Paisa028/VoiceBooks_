@@ -1,10 +1,11 @@
-import React from 'react';
 
-export default function Spinner({ large }) {
+export default function Spinner({ large, decorative = false }) {
   return (
     <span
       className={`spinner${large ? ' lg' : ''}`}
-      role="status"
+      role={decorative ? undefined : 'status'}
+      aria-label={decorative ? undefined : 'Loading'}
+      aria-hidden={decorative || undefined}
     />
   );
 }

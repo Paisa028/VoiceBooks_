@@ -27,7 +27,7 @@ export default function AccountantProfile() {
 
     if (loading) {
         return (
-            <div className="loading">
+            <div className="loading" role="status">
                 Loading profile...
             </div>
         );
@@ -35,7 +35,7 @@ export default function AccountantProfile() {
 
     if (error) {
         return (
-            <div className="error-box">
+            <div className="error-box" role="alert">
                 {error}
             </div>
         );
@@ -43,7 +43,7 @@ export default function AccountantProfile() {
 
     if (!profile) {
         return (
-            <div className="error-box">
+            <div className="error-box" role="alert">
                 Profile not found.
             </div>
         );
@@ -53,41 +53,75 @@ export default function AccountantProfile() {
         profile.name ||
         `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
 
-    return (
-        <main className="accountant-page">
+   return (
+    <main className="accountant-profile-page">
 
-            <header className="page-header">
-                <p className="eyebrow">
+        <header className="accountant-profile-header">
+            <div>
+                <p className="accountant-profile-eyebrow">
                     ACCOUNTANT WORKSPACE
                 </p>
 
-                <h1>
-                    Accountant Profile
-                </h1>
-            </header>
+                <h1>Accountant Profile</h1>
 
-            <section className="profile-card">
+                <p className="accountant-profile-subtitle">
+                    View your professional account information.
+                </p>
+            </div>
+        </header>
 
-                <div className="profile-avatar">
-                    {displayName
-                        ?.charAt(0)
-                        .toUpperCase()}
+        <section className="accountant-profile-card">
+
+            <div className="accountant-profile-top">
+
+                <div className="accountant-profile-avatar">
+                    {displayName?.charAt(0).toUpperCase() || "A"}
                 </div>
 
-                <h2>
-                    {displayName}
-                </h2>
+                <div className="accountant-profile-identity">
+                    <h2>{displayName}</h2>
 
-                <p>
-                    {profile.email}
-                </p>
+                    <p>Accounting Professional</p>
 
-                <span className="role-badge">
-                    Accountant
-                </span>
+                    <span className="accountant-profile-role">
+                        Accountant
+                    </span>
+                </div>
 
-            </section>
+            </div>
 
-        </main>
-    );
+            <div className="accountant-profile-divider" />
+
+            <div className="accountant-profile-details">
+
+                <div className="accountant-profile-field">
+                    <span>FULL NAME</span>
+                    <strong>{displayName}</strong>
+                </div>
+
+                <div className="accountant-profile-field">
+                    <span>EMAIL ADDRESS</span>
+                    <strong>{profile.email || "Not provided"}</strong>
+                </div>
+
+                <div className="accountant-profile-field">
+                    <span>ACCOUNT ROLE</span>
+                    <strong>Accountant</strong>
+                </div>
+
+                <div className="accountant-profile-field">
+                    <span>ACCOUNT STATUS</span>
+
+                    <div className="accountant-profile-status">
+                        <i></i>
+                        Active
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+);
 }

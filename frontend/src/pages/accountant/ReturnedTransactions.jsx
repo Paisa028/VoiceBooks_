@@ -27,7 +27,7 @@ export default function ReturnedTransactions() {
 
     if (loading) {
         return (
-            <div className="loading">
+            <div className="loading" role="status">
                 Loading returned transactions...
             </div>
         );
@@ -35,66 +35,97 @@ export default function ReturnedTransactions() {
 
     if (error) {
         return (
-            <div className="error-box">
+            <div className="error-box" role="alert">
                 {error}
             </div>
         );
     }
 
     return (
-        <main className="accountant-page">
+        <main className="accountant-returned-page">
 
-            <header className="page-header">
-                <p className="eyebrow">
-                    TRANSACTION RETURNS
-                </p>
+            <header className="accountant-returned-header">
+                <div>
+                    <p className="accountant-returned-eyebrow">
+                        TRANSACTION RETURNS
+                    </p>
 
-                <h1>
-                    Returned Transactions
-                </h1>
+                    <h1>Returned Transactions</h1>
 
-                <p>
-                    Transactions that require correction.
-                </p>
+                    <p className="accountant-returned-subtitle">
+                        Transactions returned to clients for correction.
+                    </p>
+                </div>
             </header>
 
-            <section className="content-card">
+            <section className="accountant-returned-card">
+
+                <div className="accountant-returned-card-header">
+                    <div>
+                        <h2>Returned Entries</h2>
+                        <p>
+                            Review transactions that require corrections
+                            before they can be approved.
+                        </p>
+                    </div>
+
+                    <div className="accountant-returned-count">
+                        {transactions.length}{" "}
+                        {transactions.length === 1
+                            ? "transaction"
+                            : "transactions"}
+                    </div>
+                </div>
 
                 {transactions.length === 0 ? (
-                    <div className="empty-state">
-                        No returned transactions.
+                    <div className="accountant-returned-empty">
+
+                        <div className="accountant-returned-empty-icon">
+                            ↩
+                        </div>
+
+                        <h3>No returned transactions</h3>
+
+                        <p>
+                            Transactions returned for correction will
+                            appear here.
+                        </p>
+
                     </div>
                 ) : (
-                    transactions.map((transaction) => (
-                        <div
-                            className="returned-row"
-                            key={transaction.id}
-                        >
-                            <div>
-                                <strong>
-                                    {transaction.description}
-                                </strong>
+                    <div className="accountant-returned-list">
 
-                                <small>
-                                    {transaction.client_name}
-                                </small>
-                            </div>
+                        {transactions.map((transaction) => (
+                            <div
+                                className="accountant-returned-row"
+                                key={transaction.id}
+                            >
+                                <div className="accountant-returned-details">
+                                    <strong>
+                                        {transaction.description}
+                                    </strong>
 
-                            <div>
-                                <span>
-                                    Reason:
+                                    <small>
+                                        {transaction.client_name || "Client"}
+                                    </small>
+                                </div>
+
+                                <div className="accountant-returned-reason">
+                                    <span>Reason</span>
+
+                                    <p>
+                                        {transaction.rejection_reason ||
+                                            "Correction required"}
+                                    </p>
+                                </div>
+
+                                <span className="accountant-returned-status">
+                                    ↩ Returned
                                 </span>
-
-                                <p>
-                                    {transaction.rejection_reason}
-                                </p>
                             </div>
+                        ))}
 
-                            <span className="status returned">
-                                Returned
-                            </span>
-                        </div>
-                    ))
+                    </div>
                 )}
 
             </section>

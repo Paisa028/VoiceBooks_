@@ -27,7 +27,7 @@ export default function ApprovedTransactions() {
 
     if (loading) {
         return (
-            <div className="loading">
+            <div className="loading" role="status">
                 Loading approved transactions...
             </div>
         );
@@ -35,68 +35,106 @@ export default function ApprovedTransactions() {
 
     if (error) {
         return (
-            <div className="error-box">
+            <div className="error-box" role="alert">
                 {error}
             </div>
         );
     }
 
     return (
-        <main className="accountant-page">
+    <main className="accountant-approved-page">
 
-            <header className="page-header">
-                <p className="eyebrow">
+        <header className="accountant-approved-header">
+            <div>
+                <p className="accountant-approved-eyebrow">
                     ACCOUNTING RECORDS
                 </p>
 
-                <h1>
-                    Approved Transactions
-                </h1>
+                <h1>Approved Transactions</h1>
 
-                <p>
-                    Transactions approved by the
-                    accounting professional.
+                <p className="accountant-approved-subtitle">
+                    Transactions approved by the accounting professional.
                 </p>
-            </header>
+            </div>
+        </header>
 
-            <section className="content-card">
+        <section className="accountant-approved-card">
 
-                {transactions.length === 0 ? (
-                    <div className="empty-state">
-                        No approved transactions yet.
+            <div className="accountant-approved-card-header">
+                <div>
+                    <h2>Approved Entries</h2>
+                    <p>
+                        Review transactions that have successfully
+                        completed the approval process.
+                    </p>
+                </div>
+
+                <div className="accountant-approved-count">
+                    {transactions.length}{" "}
+                    {transactions.length === 1
+                        ? "transaction"
+                        : "transactions"}
+                </div>
+            </div>
+
+            {transactions.length === 0 ? (
+                <div className="accountant-approved-empty">
+
+                    <div className="accountant-approved-empty-icon">
+                        ✓
                     </div>
-                ) : (
-                    transactions.map((transaction) => (
+
+                    <h3>No approved transactions yet</h3>
+
+                    <p>
+                        Transactions you approve will appear here
+                        for future reference.
+                    </p>
+
+                </div>
+            ) : (
+                <div className="accountant-approved-list">
+
+                    {transactions.map((transaction) => (
+
                         <div
-                            className="transaction-row"
+                            className="accountant-approved-row"
                             key={transaction.id}
                         >
-                            <div>
+
+                            <div className="accountant-approved-details">
                                 <strong>
                                     {transaction.description}
                                 </strong>
 
                                 <small>
-                                    {transaction.client_name}
+                                    {transaction.client_name ||
+                                        "Client"}
                                 </small>
                             </div>
 
-                            <strong>
-                                R
-                                {Number(
-                                    transaction.amount || 0
-                                ).toFixed(2)}
+                            <strong className="accountant-approved-amount">
+                                {new Intl.NumberFormat("en-ZA", {
+                                    style: "currency",
+                                    currency: "ZAR",
+                                }).format(
+                                    Number(transaction.amount || 0)
+                                )}
                             </strong>
 
-                            <span className="status approved">
-                                Approved
+                            <span className="accountant-approved-status">
+                                ✓ Approved
                             </span>
+
                         </div>
-                    ))
-                )}
 
-            </section>
+                    ))}
 
-        </main>
-    );
+                </div>
+            )}
+
+        </section>
+
+    </main>
+);
 }

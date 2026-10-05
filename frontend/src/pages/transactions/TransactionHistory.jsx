@@ -39,7 +39,7 @@ function TransactionHistory() {
         setErrorMessage("");
 
         const response = await fetch(
-          "http://localhost:3715/api/transactions"
+          "/api/transactions"
         );
 
         const data = await response.json();
@@ -254,7 +254,7 @@ if (transactionDate.getTime() === today.getTime()) {
             </h1>
 
             <p className="transaction-intro">
-              Review transactions posted
+              Review transactions submitted
               through VoiceBooks.
             </p>
           </div>
@@ -364,7 +364,7 @@ if (transactionDate.getTime() === today.getTime()) {
               </h2>
 
               <p>
-                Posted transactions will
+                Submitted transactions will
                 appear here.
               </p>
 

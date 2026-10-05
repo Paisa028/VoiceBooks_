@@ -11,6 +11,10 @@ const {
 
 //Creates the transcription router
 const router = express.Router();
+const { authenticate, requireRole } = require('../middleware/auth');
+const { rateLimit } = require('express-rate-limit');
+router.use(authenticate, requireRole('business_owner', 'bookkeeper'));
+router.use(rateLimit({ windowMs: 60000, limit: 10 }));
 
 /* Stores uploaded audio temporarily in moemory
 The recording can be sent directly to the speech-t0-text service*/
@@ -33,7 +37,7 @@ const upload= multer({
             callback(null, true);
         }
         else{
-            callback(new Error("Only audio recording are allowed."))
+            callback(Object.assign(new Error('Only audio recordings are allowed.'), { status: 400 }))
         }
     },
 });

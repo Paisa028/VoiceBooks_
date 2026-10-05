@@ -1,0 +1,61 @@
+# All access is through the authenticated Express API and server Admin SDK.
+# Business profiles are one-to-one with accounts, so they are stored together.
+type Account @table {
+  id: Int! @col(dataType: "serial")
+  email: String! @unique
+  passwordHash: String!
+  firstName: String!
+  lastName: String!
+  phone: String
+  role: String!
+  onboardingCompleted: Boolean! @default(value: false)
+  businessName: String!
+  registrationNumber: String
+  vatNumber: String
+  industry: String!
+  businessSize: String!
+  country: String!
+  currency: String!
+  sageStatus: String! @default(value: "not_connected")
+  sageRegion: String
+  accountant: Account
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Entry @table {
+  id: Int! @col(dataType: "serial")
+  owner: Account!
+  description: String!
+  amount: Float! @col(dataType: "numeric(20,2)")
+  supplier: String
+  category: String
+  debitAccount: String!
+  creditAccount: String!
+  status: String! @default(value: "pending_review")
+  originalTranscription: String
+  supportingInformation: String
+  payloadJson: String!
+  approvedBy: Int
+  approvedAt: Timestamp
+  rejectionReason: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Audit @table {
+  id: Int! @col(dataType: "serial")
+  owner: Account!
+  entry: Entry
+  actor: Account!
+  action: String!
+  source: String!
+  timestamp: Timestamp! @default(expr: "request.time")
+}
+
+type ResetToken @table {
+  id: String!
+  owner: Account!
+  expiresAt: Timestamp!
+  usedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+}
