@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
 
 export default function Ledger() {
   const [transactions, setTransactions] = useState([]);
@@ -14,8 +17,11 @@ export default function Ledger() {
         setError("");
 
         const response = await fetch(
-          "/api/transactions?status=approved"
-        );
+          `${API_BASE_URL}/api/transactions?status=approved`,
+          {
+            credentials: "include"
+          }
+);
 
         const data = await response.json();
 

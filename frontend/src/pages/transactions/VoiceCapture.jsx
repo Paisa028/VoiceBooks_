@@ -8,7 +8,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-
+import { apiFetch } from "../../api/apiFetch.js";
 // --------------------------------------------------
 // VOICE CAPTURE
 // --------------------------------------------------
@@ -121,13 +121,13 @@ function VoiceCapture() {
           "voicebooks-recording.webm"
         );
 
-        const response = await fetch(
+        const response = await apiFetch(
           "/api/transcriptions",
           {
-            method: "POST",
-            body: formData,
-          }
-        );
+             method: "POST",
+             body: formData,
+            }
+          );
 
         const data = await response.json();
 
@@ -341,7 +341,7 @@ function VoiceCapture() {
 // --------------------------------------------------
 
 const processNormalTransaction = async () => {
-  const response = await fetch(
+  const response = await apiFetch(
     "/api/transactions/process",
     {
       method: "POST",
@@ -436,20 +436,18 @@ const processClarificationResponse = async () => {
     .filter(Boolean)
     .join(". ");
 
-  const response = await fetch(
-    "/api/transactions/process",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        transcript: combinedTranscript,
-      }),
-    }
-  );
+  const response = await apiFetch(
+  "/api/transactions/process",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      transcript: combinedTranscript,
+    }),
+  }
+);
 
   const data = await response.json();
 

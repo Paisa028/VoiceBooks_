@@ -1,13 +1,13 @@
+const API_BASE_URL = (
+    import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
+
 async function request(url, options = {}) {
     const response = await fetch(
-        `/api${url}`,
+        `${API_BASE_URL}/api${url}`,
         {
             ...options,
-
-            // Uses the same HTTP-only authentication
-            // cookie as the VoiceBooks login.
             credentials: "include",
-
             headers: {
                 "Content-Type": "application/json",
                 ...options.headers
@@ -21,8 +21,7 @@ async function request(url, options = {}) {
 
     if (!response.ok) {
         throw new Error(
-            result.message ||
-            "Something went wrong"
+            result.message || "Something went wrong"
         );
     }
 

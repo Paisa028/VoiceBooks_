@@ -6,6 +6,8 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
+import { apiFetch } from "../../api/apiFetch.js";
+
 // --------------------------------------------------
 // TRANSACTION HISTORY
 // --------------------------------------------------
@@ -38,7 +40,7 @@ function TransactionHistory() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await apiFetch(
           "/api/transactions"
         );
 

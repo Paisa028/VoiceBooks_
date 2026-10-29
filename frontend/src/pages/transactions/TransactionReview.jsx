@@ -3,7 +3,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-
+import { apiFetch } from "../../api/apiFetch.js";
 // Creates the Transaction Review screen
 function TransactionReview() {
   const navigate = useNavigate();
@@ -374,23 +374,18 @@ function TransactionReview() {
         journalEntries,
       };
 
-      const response = await fetch(
-        receivedTransaction.status === 'returned'
-          ? `/api/transactions/${encodeURIComponent(receivedTransaction.id)}`
-          : '/api/transactions',
-        {
-          method: receivedTransaction.status === 'returned' ? 'PUT' : 'POST',
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify(
-            transactionForApi
-          ),
-        }
-      );
+    const response = await apiFetch(
+       receivedTransaction.status === "returned"
+       ? `/api/transactions/${encodeURIComponent(receivedTransaction.id)}`
+        : "/api/transactions",
+  {
+    method: receivedTransaction.status === "returned" ? "PUT" : "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(transactionForApi),
+  }
+);
 
       const data =
         await response.json();

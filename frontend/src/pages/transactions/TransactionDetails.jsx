@@ -7,7 +7,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-
+import { apiFetch } from "../../api/apiFetch.js";
 // --------------------------------------------------
 // TRANSACTION DETAILS
 // --------------------------------------------------
@@ -37,12 +37,11 @@ function TransactionDetails() {
           setIsLoading(true);
           setErrorMessage("");
 
-          const response = await fetch(
+          const response = await apiFetch(
             `/api/transactions/${encodeURIComponent(
               id
             )}`
           );
-
           const data =
             await response.json();
 
