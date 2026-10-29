@@ -6,11 +6,14 @@ export class ApiError extends Error {
   }
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || '';
+
 async function request(path, { method = 'GET', body } = {}) {
   let res;
 
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${API_BASE_URL}/api${path}`, {
       method,
       credentials: 'include',
       headers: body

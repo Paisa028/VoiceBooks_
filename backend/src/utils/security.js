@@ -25,7 +25,7 @@ const verifyToken = (token) =>
 const cookieOptions = () => ({
   httpOnly: true,
   secure: config.cookieSecure,
-  sameSite: 'lax',
+  sameSite: config.isProd ? 'none' : 'lax',
   path: '/',
 });
 const setAuthCookie = (res, token) =>
