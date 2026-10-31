@@ -233,17 +233,42 @@ async function profile(req, res) {
     }
 }
 
+async function updateProfile(req, res) {
+  try {
+    const data = await service.updateAccountantProfile(
+      req.user.id,
+      req.body
+    );
+
+    return res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data,
+    });
+  } catch (error) {
+    console.error("Unable to update accountant profile:", error);
+
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status
+        ? error.message
+        : "Unable to update accountant profile",
+    });
+  }
+}
+
 
 module.exports = {
-    dashboard,
-    clients,
-    client,
-    clientTransactions,
-    pendingReviews,
-    reviewTransaction,
-    approve,
-    reject,
-    approved,
-    returned,
-    profile
+  dashboard,
+  clients,
+  client,
+  clientTransactions,
+  pendingReviews,
+  reviewTransaction,
+  approve,
+  reject,
+  approved,
+  returned,
+  profile,
+  updateProfile,
 };

@@ -80,5 +80,7 @@ router.get(
     controller.profile
 );
 
+router.patch("/profile", controller.updateProfile);
+
 
 module.exports = router;
