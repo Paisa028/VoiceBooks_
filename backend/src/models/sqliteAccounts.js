@@ -306,6 +306,155 @@ const recentResetTokenExists = (
       `-${Number(seconds)} seconds`
     );
 
+
+const findRowByGoogleSub = (googleSub) => {
+  if (
+    typeof googleSub !== "string" ||
+    !googleSub.trim()
+  ) {
+    return null;
+  }
+
+  return db.prepare(`
+    ${SELECT}
+    WHERE u.id = (
+      SELECT user_id
+      FROM user_google_accounts
+      WHERE google_sub = ?
+    )
+  `).get(googleSub);
+};
+
+const linkGoogleAccount = db.transaction(
+  (userId, googleSub) => {
+    const user = findRowById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const existing = db.prepare(`
+      SELECT user_id, google_sub
+      FROM user_google_accounts
+      WHERE user_id = ? OR google_sub = ?
+    `).all(userId, googleSub);
+
+    if (existing.length > 0) {
+      throw new Error(
+        "This VoiceBooks or Google account is already linked."
+      );
+    }
+
+    db.prepare(`
+      INSERT INTO user_google_accounts
+        (user_id, google_sub)
+      VALUES (?, ?)
+    `).run(userId, googleSub);
+
+    return findRowById(userId);
+  }
+);
+
+const createGoogleUserWithBusiness = db.transaction(
+  ({ googleUser, business, passwordHash }) => {
+    if (
+      !googleUser?.googleSub ||
+      !googleUser?.email ||
+      typeof passwordHash !== "string" ||
+      !/^\$2[aby]\$/.test(passwordHash) ||
+      !business?.businessName ||
+      !business?.industry ||
+      !business?.businessSize ||
+      !business?.country ||
+      !business?.currency
+    ) {
+      const error = new Error(
+        "Valid Google account and business details are required."
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    if (
+      findRowByEmail(googleUser.email) ||
+      findRowByGoogleSub(googleUser.googleSub)
+    ) {
+      const error = new Error(
+        "This account already exists. Sign in and link Google instead."
+      );
+      error.status = 409;
+      throw error;
+    }
+
+    const role = db.prepare(`
+      SELECT id
+      FROM roles
+      WHERE name = 'business_owner'
+    `).get();
+
+    if (!role) {
+      throw new Error("Business Owner role is unavailable.");
+    }
+
+    const result = db.prepare(`
+      INSERT INTO users (
+        email,
+        password_hash,
+        first_name,
+        last_name,
+        phone,
+        role_id
+      )
+      VALUES (?, ?, ?, ?, NULL, ?)
+    `).run(
+      googleUser.email,
+      passwordHash,
+      googleUser.firstName || "Google",
+      googleUser.lastName || "User",
+      role.id
+    );
+
+    const userId = Number(result.lastInsertRowid);
+
+    db.prepare(`
+      INSERT INTO business_profiles (
+        user_id,
+        business_name,
+        registration_number,
+        vat_number,
+        industry,
+        business_size,
+        country,
+        currency
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      userId,
+      business.businessName,
+      business.registrationNumber || null,
+      business.vatNumber || null,
+      business.industry,
+      business.businessSize,
+      business.country,
+      business.currency
+    );
+
+    db.prepare(`
+      INSERT INTO user_google_accounts (
+        user_id,
+        google_sub
+      )
+      VALUES (?, ?)
+    `).run(
+      userId,
+      googleUser.googleSub
+    );
+
+    return userId;
+  }
+);
+
+
 // --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
@@ -315,6 +464,9 @@ module.exports = {
   findRowById,
   toPublic,
   createUserWithBusiness,
+  createGoogleUserWithBusiness,
+  findRowByGoogleSub,
+  linkGoogleAccount,
   setSageStatus,
   updateSettings,
   completeOnboarding,
