@@ -1,83 +1,82 @@
+
 const API_BASE_URL = (
-    import.meta.env.VITE_API_URL || ""
+  import.meta.env.VITE_API_URL || ""
 ).replace(/\/+$/, "");
 
 async function request(url, options = {}) {
-    const response = await fetch(
-        `${API_BASE_URL}/api${url}`,
-        {
-            ...options,
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-                ...options.headers
-            }
-        }
-    );
-
-    const result = await response
-        .json()
-        .catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(
-            result.message || "Something went wrong"
-        );
+  const response = await fetch(
+    `${API_BASE_URL}/api${url}`,
+    {
+      ...options,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
     }
+  );
 
-    return result;
+  const result = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Something went wrong"
+    );
+  }
+
+  return result;
 }
 
-
 export const accountantApi = {
+  dashboard: () =>
+    request("/accountant/dashboard"),
 
-    dashboard: () =>
-        request("/accountant/dashboard"),
+  clients: () =>
+    request("/accountant/clients"),
 
-    clients: () =>
-        request("/accountant/clients"),
+  client: (id) =>
+    request(`/accountant/clients/${id}`),
 
-    client: (id) =>
-        request(`/accountant/clients/${id}`),
+  clientTransactions: (id) =>
+    request(`/accountant/clients/${id}/transactions`),
 
-    clientTransactions: (id) =>
-        request(
-            `/accountant/clients/${id}/transactions`
-        ),
+  pendingReviews: () =>
+    request("/accountant/reviews/pending"),
 
-    pendingReviews: () =>
-        request(
-            "/accountant/reviews/pending"
-        ),
+  transactionReview: (id) =>
+    request(`/accountant/transactions/${id}/review`),
 
-    transactionReview: (id) =>
-        request(
-            `/accountant/transactions/${id}/review`
-        ),
+  approve: (id) =>
+    request(
+      `/accountant/transactions/${id}/approve`,
+      {
+        method: "PATCH",
+      }
+    ),
 
-    approve: (id) =>
-        request(
-            `/accountant/transactions/${id}/approve`,
-            {
-                method: "PATCH"
-            }
-        ),
+  reject: (id, reason) =>
+    request(
+      `/accountant/transactions/${id}/reject`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ reason }),
+      }
+    ),
 
-    reject: (id, reason) =>
-        request(
-            `/accountant/transactions/${id}/reject`,
-            {
-                method: "PATCH",
-                body: JSON.stringify({ reason })
-            }
-        ),
+  approved: () =>
+    request("/accountant/approved"),
 
-    approved: () =>
-        request("/accountant/approved"),
+  returned: () =>
+    request("/accountant/returned"),
 
-    returned: () =>
-        request("/accountant/returned"),
+  profile: () =>
+    request("/accountant/profile"),
 
-    profile: () =>
-        request("/accountant/profile")
+  updateProfile: (data) =>
+    request("/accountant/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
