@@ -39,4 +39,25 @@ const newResetToken = () => {
   return { raw, hash: sha256(raw) }; // only the hash is stored
 };
 
-module.exports = { COOKIE_NAME, hashPassword, verifyPassword, DUMMY_HASH, signToken, verifyToken, setAuthCookie, clearAuthCookie, sha256, newResetToken };
+// Create an unusable, random local password for Google-only accounts.
+const createGoogleAccountPasswordHash = async () => {
+  const randomPassword = crypto
+    .randomBytes(48)
+    .toString("hex");
+
+  return hashPassword(randomPassword);
+};
+
+module.exports = {
+  COOKIE_NAME,
+  hashPassword,
+  verifyPassword,
+  DUMMY_HASH,
+  signToken,
+  verifyToken,
+  setAuthCookie,
+  clearAuthCookie,
+  sha256,
+  newResetToken,
+  createGoogleAccountPasswordHash,
+};
