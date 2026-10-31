@@ -17,3 +17,5 @@ backend/coverage/
 backend/tests/integration/unit/
 
 frontend/.env
+
+/backend/check-db.cjs
