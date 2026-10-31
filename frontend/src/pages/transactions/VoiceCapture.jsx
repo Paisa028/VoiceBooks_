@@ -69,6 +69,7 @@ function VoiceCapture() {
   // --------------------------------------------------
 
   const mediaRecorderRef = useRef(null);
+  const audioPlayerRef = useRef(null);
 
   const streamRef = useRef(null);
 
@@ -155,6 +156,21 @@ function VoiceCapture() {
         setIsTranscribing(false);
       }
     };
+    const fixAudioDuration = (event) => {
+  const player = event.currentTarget;
+
+  if (!Number.isFinite(player.duration) || player.duration === 0) {
+    player.currentTime = 1e9;
+  }
+};
+
+const restoreAudioStart = (event) => {
+  const player = event.currentTarget;
+
+  if (player.currentTime > 0 && player.paused) {
+    player.currentTime = 0;
+  }
+};
 
   // --------------------------------------------------
   // START RECORDING
@@ -996,9 +1012,12 @@ const processClarificationResponse = async () => {
                 {/* Playback */}
                 {audioUrl && (
                   <audio
+                   ref={audioPlayerRef}
                     className="recording-playback"
                     controls
                     src={audioUrl}
+                    onLoadedMetadata={fixAudioDuration}
+                    onDurationChange={restoreAudioStart}
                   >
                     Your browser does not
                     support audio playback.

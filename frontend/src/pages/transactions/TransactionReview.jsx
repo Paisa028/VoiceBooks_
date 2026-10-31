@@ -228,83 +228,108 @@ function TransactionReview() {
     transaction.type === "customer_receipt" ||
     transaction.type === "sales_invoice";
 
+ 
+  // Determines the payment account
   const getPaymentAccount = () => {
-    const paymentMethod =
-      transaction.paymentMethod
-        .toLowerCase()
-        .trim();
+    const paymentMethod = String(
+      transaction.paymentMethod || ""
+    ).toLowerCase().trim();
+
+    if (!paymentMethod) {
+      return "Unclassified";
+    }
 
     if (
       paymentMethod.includes("bank") ||
-      paymentMethod.includes("eft")
+      paymentMethod.includes("eft") ||
+      paymentMethod.includes("transfer")
     ) {
       return "Bank";
     }
 
-    if (
-      paymentMethod.includes("credit card")
-    ) {
+    if (paymentMethod.includes("debit card")) {
+      return "Bank";
+    }
+
+    if (paymentMethod.includes("credit card")) {
       return "Credit Card";
-    }
-
-    if (
-      paymentMethod.includes("debit card")
-    ) {
-      return "Bank";
-    }
-
-    if (
-      paymentMethod.includes("online")
-    ) {
-      return "Online Payment";
-    }
-
-    if (
-      paymentMethod.includes("mobile")
-    ) {
-      return "Mobile Payment";
     }
 
     if (paymentMethod.includes("cash")) {
       return "Cash";
     }
 
-    return transaction.paymentMethod
-      ? formatText(transaction.paymentMethod)
-      : "Cash / Bank";
-  };
-
-  const paymentAccount =
-    getPaymentAccount();
-
-  // Determines the account used for the transaction.
-  const getCategoryAccount = () => {
-    if (transaction.accountCategory) {
-      if (
-        isIncomeTransaction &&
-        !transaction.accountCategory
-          .toLowerCase()
-          .includes("revenue")
-      ) {
-        return transaction.accountCategory;
-      }
-
-      if (
-        !isIncomeTransaction &&
-        !transaction.accountCategory
-          .toLowerCase()
-          .includes("expense")
-      ) {
-        return `${transaction.accountCategory} Expense`;
-      }
-
-      return transaction.accountCategory;
+    if (
+      paymentMethod.includes("online") ||
+      paymentMethod.includes("mobile")
+    ) {
+      return "Unclassified";
     }
 
-    return isIncomeTransaction
-      ? "Revenue"
-      : "Expense";
+    return "Unclassified";
   };
+
+  const paymentAccount = getPaymentAccount();
+
+  // Determines the accounting category
+  const getCategoryAccount = () => {
+    const category = String(
+      transaction.accountCategory || ""
+    ).trim();
+
+    if (!category) {
+      return "Unclassified";
+    }
+
+    const revenueCategories = [
+      "Service Revenue",
+      "Sales Revenue",
+    ];
+
+    const normalizedCategory = category.toLowerCase();
+
+    const isRevenueCategory = revenueCategories.some(
+      (item) => item.toLowerCase() === normalizedCategory
+    );
+
+    if (isIncomeTransaction) {
+      if (isRevenueCategory) {
+        return category;
+      }
+
+      return "Unclassified";
+    }
+
+    if (transaction.type === "expense") {
+      if (
+        isRevenueCategory ||
+        normalizedCategory === "other"
+      ) {
+        return "Unclassified";
+      }
+
+      return normalizedCategory.includes("expense")
+        ? category
+        : `${category} Expense`;
+    }
+
+    return "Unclassified";
+  };
+  
+const supportedTypes = ["expense", "income","customer_receipt",
+  "supplier_payment",
+  "sales_invoice",
+  "purchase_invoice"];
+
+const canGenerateJournal =
+  supportedTypes.includes(transaction.type) &&
+  Number.isFinite(numericAmount) &&
+  numericAmount > 0 &&
+  !transaction.vatApplicable &&
+  paymentAccount !== "Unclassified" &&
+  categoryAccount !== "Unclassified" &&
+  paymentAccount.toLowerCase() !==
+    categoryAccount.toLowerCase();
 
   const categoryAccount =
     getCategoryAccount();
@@ -341,10 +366,33 @@ function TransactionReview() {
   // CONFIRM AND POST
   // -------------------------------------------------
 
+  
   const confirmAndPost = async () => {
+    if (!canGenerateJournal || journalEntries.length !== 2) {
+      setErrorMessage(
+        "This transaction cannot be submitted yet. " +
+        "Please select Income or Expense, a valid account " +
+        "category, a supported payment method, and an amount. " +
+        "Transactions involving VAT or other accounting types " +
+        "require additional review."
+      );
+      return;
+    }
+
+    if (
+      !transaction.description?.trim() ||
+      !transaction.transactionDate
+    ) {
+      setErrorMessage(
+        "Please provide a description and transaction date."
+      );
+      return;
+    }
+
     try {
       setErrorMessage("");
       setIsPosting(true);
+
 
       // Browser File objects cannot be serialised directly
       // into JSON. We therefore send document metadata for
@@ -401,32 +449,29 @@ function TransactionReview() {
         );
       }
 
+      // Prepare the transaction returned by the backend
       const postedTransaction = {
         ...transaction,
         ...data.transaction,
 
-        // Keeps the local File object so the next screen
-        // can still display its name.
-        attachment:
-          transaction.attachment,
+        // Preserve the local attachment for display
+        attachment: transaction.attachment,
 
+        // Use the generated accounting preview
         journalEntries,
 
+        // Preserve the backend transaction status
         status:
-          data.transaction?.status ||
-          "pending_review",
+          data.transaction?.status || "pending_review",
       };
 
-      // Successful posting now leaves the Review screen.
-      navigate(
-        "/transactions/success",
-        {
-          state: {
-            transaction:
-              postedTransaction,
-          },
-        }
-      );
+      // Navigate after successful submission
+      navigate("/transactions/success", {
+        state: {
+          transaction: postedTransaction,
+        },
+      });
+
     } catch (error) {
       console.error(
         "Transaction posting error:",
@@ -435,22 +480,19 @@ function TransactionReview() {
 
       setErrorMessage(
         error.message ||
-          "The transaction could not be posted. Please try again."
+          "The transaction could not be submitted. Please try again."
       );
+
     } finally {
       setIsPosting(false);
     }
   };
 
-  // -------------------------------------------------
-  // NO TRANSACTION
-  // -------------------------------------------------
-
+  // Display a fallback when no transaction was received
   if (!hasTransaction) {
     return (
       <main className="transaction-page">
         <section className="transaction-container transaction-review-container">
-
           <header className="transaction-header">
             <button
               type="button"
@@ -482,7 +524,6 @@ function TransactionReview() {
               New Transaction
             </button>
           </div>
-
         </section>
       </main>
     );
@@ -970,10 +1011,16 @@ function TransactionReview() {
           </h2>
 
           <p className="accounting-preview-description">
-            Review the debit and credit that
-            VoiceBooks will create when this
-            transaction is posted.
-          </p>
+             Review the proposed debit and credit entries before
+             submitting this transaction for accountant approval.</p>
+             {!canGenerateJournal && (
+              <div className="review-error" role="alert">
+                This transaction needs additional accounting
+                information or a supported transaction type
+                before it can be submitted.
+                
+                </div>
+              )}
 
           <table className="accounting-table">
             <thead>

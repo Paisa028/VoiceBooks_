@@ -1,4 +1,4 @@
-// Imports the date parser
+// Imports the date p"accounting-preview-descriptionarser
 const {
   parseTransactionDate,
 } = require("../utils/dateParser");
@@ -54,28 +54,97 @@ const processTransaction = async (transcript) => {
     amount = Number(amountText.replace(/,/g, ""));
   }
 
+  // Recognise common spoken amounts in English.
+  if (amount === null) {
+    const numberWords = {
+      one: 1, two: 2, three: 3, four: 4, five: 5,
+      six: 6, seven: 7, eight: 8, nine: 9,
+      ten: 10, twenty: 20, thirty: 30,
+      forty: 40, fifty: 50, sixty: 60,
+      seventy: 70, eighty: 80, ninety: 90,
+      hundred: 100, thousand: 1000,
+    };
+
+    const spokenAmountMatch = lowerTranscript.match(
+      /\b((?:(?:one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)[\s-]+)*(?:one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand))\s+rands?\b/
+    );
+
+    if (spokenAmountMatch) {
+      const words = spokenAmountMatch[1]
+        .replace(/-/g, " ")
+        .trim()
+        .split(/\s+/);
+
+      let total = 0;
+      let current = 0;
+      let valid = true;
+
+      for (const word of words) {
+        const value = numberWords[word];
+
+        if (value === undefined) {
+          valid = false;
+          break;
+        }
+
+        if (word === "hundred") {
+          current = (current || 1) * 100;
+        } else if (word === "thousand") {
+          total += (current || 1) * 1000;
+          current = 0;
+        } else {
+          current += value;
+        }
+      }
+
+      if (valid && total + current > 0) {
+        amount = total + current;
+      }
+    }
+  }
+
+
   // -----------------------------------
   // Detects the transaction type
   // -----------------------------------
 
+  
   let type = null;
 
-  if (
-    accountingKeywords.expense.some((word) =>
-      lowerTranscript.includes(word)
-    )
-  ) {
+  const incomePatterns = [
+    /\breceived\b/i,
+    /\bearned\b/i,
+    /\bcustomer\s+paid\b/i,
+    /\bpayment\s+received\b/i,
+    /\bsold\b/i,
+    /\bsales?\b/i,
+    /\bincome\b/i,
+    /\brevenue\b/i,
+  ];
+
+  const expensePatterns = [
+    /\bbought\b/i,
+    /\bpurchased\b/i,
+    /\bpaid\s+for\b/i,
+    /\bspent\b/i,
+    /\bexpenses?\b/i,
+    /\bsupplier\s+payment\b/i,
+    /\bpaid\s+(?:R\s*)?\d/i,
+  ];
+
+  const hasIncome = incomePatterns.some((pattern) =>
+    pattern.test(lowerTranscript)
+  );
+
+  const hasExpense = expensePatterns.some((pattern) =>
+    pattern.test(lowerTranscript)
+  );
+
+  if (hasIncome && !hasExpense) {
+    type = "income";
+  } else if (hasExpense && !hasIncome) {
     type = "expense";
   }
-
-  if (
-    accountingKeywords.income.some((word) =>
-      lowerTranscript.includes(word)
-    )
-  ) {
-    type = "income";
-  }
-
   // -----------------------------------
   // Detects the payment method
   // -----------------------------------
@@ -276,19 +345,16 @@ const processTransaction = async (transcript) => {
       ],
     },
     {
-      category: "Service Revenue",
-      keywords: [
-        "plumbing service",
-        "plumbing services",
-        "electrical service",
-        "electrical services",
-        "installation service",
-        "installation services",
-        "repair service",
-        "repair services",
-        "labour",
-      ],
-    },
+  category: "Service Revenue",
+  keywords: [
+    "service",
+    "services",
+    "consulting",
+    "consultation",
+    "labour",
+  ],
+},
+
     {
       category: "Sales Revenue",
       keywords: [

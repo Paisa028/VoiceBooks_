@@ -51,6 +51,13 @@ function TransactionSuccess() {
           letter.toUpperCase()
       );
   };
+  const journalTotals = (transaction?.journalEntries || []).reduce(
+  (totals, entry) => ({
+    debit: totals.debit + Number(entry.debit || 0),
+    credit: totals.credit + Number(entry.credit || 0),
+  }),
+  { debit: 0, credit: 0 }
+);
 
   // --------------------------------------------------
   // NEW TRANSACTION
@@ -188,7 +195,7 @@ return (
           <h2>Transaction Summary</h2>
         </div>
 
-        <div className="success-summary-body">
+        <div className="success-summary-body success-summary-grid">
 
           {/* Transaction ID */}
           <div className="review-detail-row">
@@ -286,7 +293,7 @@ return (
 
             <span className="review-detail-value">
               <span className="success-status">
-                {formatLabel(transaction.status || "confirmed")}
+                {formatLabel(transaction.status || "pending")}
               </span>
             </span>
           </div>
@@ -296,107 +303,112 @@ return (
 
         {/* Accounting journal */}
         {transaction.journalEntries &&
-          transaction.journalEntries.length >
-            0 && (
+          transaction.journalEntries.length > 0 && (
             <div className="accounting-preview">
-
-              <h2>
-                Proposed Accounting Entry
-              </h2>
+              <h2>Proposed Accounting Entry</h2>
 
               <p className="accounting-preview-description">
-                The following debit and
-                credit entry was created
+                The following debit and credit entries were created
                 for this transaction.
               </p>
 
               <table className="accounting-table">
-
                 <thead>
                   <tr>
-                    <th>Account</th>
-                    <th>Debit</th>
-                    <th>Credit</th>
+                    <th scope="col">Account</th>
+                    <th scope="col">Debit</th>
+                    <th scope="col">Credit</th>
                   </tr>
                 </thead>
 
                 <tbody>
+                  {transaction.journalEntries.map((entry, index) => (
+                    <tr key={`${entry.account}-${index}`}>
+                      <td>
+                        {entry.account}
+                      </td>
 
-                  {transaction.journalEntries.map(
-                    (entry, index) => (
-                      <tr
-                        key={`${entry.account}-${index}`}
-                      >
+                      <td className="accounting-debit">
+                        {Number(entry.debit) > 0
+                          ? formatAmount(entry.debit)
+                          : "—"}
+                      </td>
 
-                        <td>
-                          {entry.account}
-                        </td>
-
-                        <td className="accounting-debit">
-                          {Number(
-                            entry.debit
-                          ) > 0
-                            ? formatAmount(
-                                entry.debit
-                              )
-                            : "—"}
-                        </td>
-
-                        <td className="accounting-credit">
-                          {Number(
-                            entry.credit
-                          ) > 0
-                            ? formatAmount(
-                                entry.credit
-                              )
-                            : "—"}
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
+                      <td className="accounting-credit">
+                        {Number(entry.credit) > 0
+                          ? formatAmount(entry.credit)
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
 
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+
+                    <td className="accounting-debit">
+                      {formatAmount(journalTotals.debit)}
+                    </td>
+
+                    <td className="accounting-credit">
+                      {formatAmount(journalTotals.credit)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
 
+              <p className="journal-balance-note">
+                {journalTotals.debit > 0 &&
+                journalTotals.credit > 0 &&
+                Math.abs(
+                  journalTotals.debit - journalTotals.credit
+                ) < 0.005
+                  ? "Balanced accounting entry"
+                  : "Warning: Accounting entry requires review."}
+              </p>
+
+              <p className="accounting-preview-description">
+                This transaction is subject to accountant review.
+              </p>
             </div>
           )}
 
-      {/* Actions */}
-      <div className="success-actions-new">
-      <div className="success-actions-row">
 
-      <button
-      type="button"
-      className="success-secondary-button"
-      onClick={handleViewTransaction}
-     >
-      View Transaction
-    </button>
+        {/* Actions */}
+        <div className="success-actions-new">
+          <div className="success-actions-row">
+            <button
+              type="button"
+              className="success-secondary-button"
+              onClick={handleViewTransaction}
+            >
+              View Transaction
+            </button>
 
-    <button
-      type="button"
-      className="success-secondary-button"
-      onClick={handleTransactionHistory}
-    >
-      Transaction History
-    </button>
-  </div>
+            <button
+              type="button"
+              className="success-secondary-button"
+              onClick={handleTransactionHistory}
+            >
+              Transaction History
+            </button>
+          </div>
 
-  <button
-    type="button"
-    className="success-new-transaction-button"
-    onClick={handleNewTransaction}
-  >
-    + New Transaction
-  </button>
-</div>
+          <button
+            type="button"
+            className="success-new-transaction-button"
+            onClick={handleNewTransaction}
+          >
+            + New Transaction
+          </button>
+        </div>
       </section>
-
     </main>
   );
 }
 
-// Exports the screen for use in App.jsx
 export default TransactionSuccess;
+
+
+                  
