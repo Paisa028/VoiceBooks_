@@ -197,7 +197,22 @@ async function googleLogin(req, res) {
 // Register a Business Owner using a verified Google account.
 async function googleRegister(req, res) {
   try {
-    const { credential, business } = req.body || {};
+    const {
+  credential,
+  business,
+  role = "business_owner",
+} = req.body || {};
+
+if (role !== "business_owner") {
+  return res.status(403).json({
+    message:
+      "This account type requires an invitation or authorised registration.",
+    errors: {
+      role:
+        "Google self-registration is currently available for Business Owners only.",
+    },
+  });
+}
 
     if (
       !business ||

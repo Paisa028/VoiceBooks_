@@ -2,14 +2,22 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+
 import {
   Link,
   useLocation,
   useNavigate,
 } from "react-router-dom";
+
+import {
+  getCountries,
+  getCountryCallingCode,
+  parsePhoneNumberFromString,
+} from "libphonenumber-js";
 
 import Alert from "../components/Alert.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
@@ -23,8 +31,7 @@ import { useForm } from "../hooks/useForm.js";
 import { SIGNUP_STEPS } from "../utils/constants.js";
 import { validateAccount } from "../utils/validators.js";
 
-const GOOGLE_SCRIPT =
-  "https://accounts.google.com/gsi/client";
+const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client";
 
 const EMPTY = {
   firstName: "",
@@ -35,11 +42,74 @@ const EMPTY = {
   confirmPassword: "",
 };
 
-// Read display information only.
-// The backend verifies the Google token independently.
+// Display international country codes.
+const regionNames = new Intl.DisplayNames(["en"], {
+  type: "region",
+});
+
+const countryOptions = getCountries()
+  .map((country) => ({
+    country,
+    code: `+${getCountryCallingCode(country)}`,
+    name: regionNames.of(country) || country,
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+// Convert saved international numbers to their local display.
+function getInitialPhone(value) {
+  const phone = String(value || "").trim();
+
+  if (!phone) {
+    return {
+      country: "ZA",
+      localNumber: "",
+    };
+  }
+
+  const parsed = parsePhoneNumberFromString(phone);
+
+  return {
+    country: parsed?.country || "ZA",
+    localNumber: parsed?.formatNational() || phone,
+  };
+}
+
+// Build an international number for backend validation.
+function buildPhoneNumber(localNumber, country) {
+  const raw = String(localNumber || "").trim();
+
+  if (!raw) return "";
+
+  // Allow pasted international numbers.
+  if (raw.startsWith("+")) {
+    const parsed = parsePhoneNumberFromString(raw);
+    return parsed?.number || raw;
+  }
+
+  const parsed = parsePhoneNumberFromString(raw, country);
+
+  if (parsed) {
+    return parsed.number;
+  }
+
+  // Preserve invalid input so validation can reject it.
+  const callingCode = getCountryCallingCode(country);
+
+  if (!/^[\d\s().-]+$/.test(raw)) {
+    return `+${callingCode}${raw}`;
+  }
+
+  const digits = raw.replace(/\D/g, "").replace(/^0+/, "");
+
+  return `+${callingCode}${digits}`;
+}
+
+// Read Google display information only.
+// Google credentials are verified by the backend.
 function readGoogleProfile(credential) {
   try {
     const payload = credential.split(".")[1];
+
     if (!payload) return null;
 
     const normalized = payload
@@ -89,11 +159,27 @@ export default function Signup() {
   const googleClientId =
     import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+  const savedAccount =
+    draft.authMethod === "password" && draft.account
+      ? draft.account
+      : EMPTY;
+
+  const initialPhone = useMemo(
+    () => getInitialPhone(savedAccount.phone),
+    // Capture the initial phone value for this form.
+    []
+  );
+
+  const [phoneCountry, setPhoneCountry] = useState(
+    initialPhone.country
+  );
+
+  const [localPhone, setLocalPhone] = useState(
+    initialPhone.localNumber
+  );
+
   const form = useForm({
-    initialValues:
-      draft.authMethod === "password" && draft.account
-        ? draft.account
-        : EMPTY,
+    initialValues: savedAccount,
 
     validate: validateAccount,
 
@@ -105,8 +191,16 @@ export default function Signup() {
       : {},
 
     onSubmit: (values) => {
+      const completePhone = buildPhoneNumber(
+        localPhone,
+        phoneCountry
+      );
+
       update({
-        account: values,
+        account: {
+          ...values,
+          phone: completePhone,
+        },
         authMethod: "password",
         googleCredential: null,
         googleCredentialAt: null,
@@ -116,6 +210,27 @@ export default function Signup() {
       navigate("/signup/role");
     },
   });
+
+  // Keep the combined phone number inside form validation.
+  const handlePhoneChange = (value, country) => {
+    form.setFields({
+      phone: buildPhoneNumber(value, country),
+    });
+  };
+
+  const onLocalPhoneChange = (event) => {
+    const value = event.target.value;
+
+    setLocalPhone(value);
+    handlePhoneChange(value, phoneCountry);
+  };
+
+  const onCountryChange = (event) => {
+    const country = event.target.value;
+
+    setPhoneCountry(country);
+    handlePhoneChange(localPhone, country);
+  };
 
   const handleGoogleCredential = useCallback(
     (response) => {
@@ -143,12 +258,14 @@ export default function Signup() {
         authMethod: "google",
         googleCredential: credential,
         googleCredentialAt: Date.now(),
+
         account: {
           ...EMPTY,
           firstName: googleProfile.firstName,
           lastName: googleProfile.lastName,
           email: googleProfile.email,
         },
+
         role: "business_owner",
       });
 
@@ -157,6 +274,7 @@ export default function Signup() {
     [navigate, update]
   );
 
+  // Load and display the official Google signup button.
   useEffect(() => {
     if (!googleClientId || !googleButtonRef.current) {
       return;
@@ -199,6 +317,7 @@ export default function Signup() {
 
     if (window.google?.accounts?.id) {
       renderButton();
+
       return () => {
         cancelled = true;
       };
@@ -263,12 +382,58 @@ export default function Signup() {
           {...form.field("email")}
         />
 
-        <FormField
-          label="Phone (optional)"
-          type="tel"
-          autoComplete="tel"
-          {...form.field("phone")}
-        />
+        {/* Country code and local phone are separate inputs. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(125px, 1fr) minmax(0, 2fr)",
+            gap: 12,
+            alignItems: "start",
+          }}
+        >
+          <FormField
+            as="select"
+            label="Country code"
+            value={phoneCountry}
+            onChange={onCountryChange}
+            autoComplete="tel-country-code"
+          >
+            {countryOptions.map((option) => (
+              <option
+                key={option.country}
+                value={option.country}
+              >
+                {option.name} ({option.code})
+              </option>
+            ))}
+          </FormField>
+
+          <FormField
+            label="Phone number (optional)"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="82 123 4567"
+            value={localPhone}
+            onChange={onLocalPhoneChange}
+            onBlur={form.field("phone").onBlur}
+            error={form.field("phone").error}
+            name="phone"
+          />
+        </div>
+
+        <p
+          style={{
+            fontSize: 12,
+            color: "#777",
+            marginTop: 0,
+            marginBottom: 16,
+          }}
+        >
+          Select your country and enter your phone number.
+          The country code will be added automatically.
+          You can leave this field empty.
+        </p>
 
         <FormField
           label="Password"
@@ -313,7 +478,9 @@ export default function Signup() {
             background: "#ddd",
           }}
         />
+
         <span>OR</span>
+
         <span
           style={{
             flex: 1,
@@ -325,8 +492,7 @@ export default function Signup() {
 
       <Alert type="error">
         {googleError || location.state?.googleNotice}
-        
-        </Alert>
+      </Alert>
 
       {googleClientId ? (
         <div

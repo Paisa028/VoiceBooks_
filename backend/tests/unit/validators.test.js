@@ -130,7 +130,7 @@ describe('Auth Validators', () => {
       const validData = {
         firstName: 'John',
         lastName: 'Doe',
-        phone: '+1234567890',
+        phone: '+27821234567',
         email: 'john@example.com',
         password: 'ValidPass123',
         confirmPassword: 'ValidPass123',
@@ -384,11 +384,24 @@ describe('Auth Validators', () => {
   });
 
   describe('SELF_ASSIGNABLE_ROLES', () => {
-    it('should contain expected roles', () => {
-      expect(validators.SELF_ASSIGNABLE_ROLES).toContain('business_owner');
-      expect(validators.SELF_ASSIGNABLE_ROLES).toContain('accountant');
-      expect(validators.SELF_ASSIGNABLE_ROLES).toContain('bookkeeper');
+    it('should only allow public Business Owner registration', () => {
+      expect(validators.SELF_ASSIGNABLE_ROLES).toEqual([
+        'business_owner',
+      ]);
+
       expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('admin');
+      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('accountant');
+      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('auditor');
+    });
+
+    it('should recognise supported account roles', () => {
+      expect(validators.REGISTRATION_ROLES).toEqual(
+        expect.arrayContaining([
+          'business_owner',
+          'accountant',
+          'auditor',
+        ])
+      );
     });
   });
 });

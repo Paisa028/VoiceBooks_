@@ -9,6 +9,7 @@ const ctrl = require("../controllers/auth.controller.js");
 
 const {
   forgotPasswordSchema,
+  googleRegisterSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -29,7 +30,7 @@ const limiter = rateLimit({
   },
 });
 
-// Email and password authentication.
+// Email and password registration.
 router.post(
   "/register",
   limiter,
@@ -37,6 +38,7 @@ router.post(
   ctrl.register
 );
 
+// Email and password login.
 router.post(
   "/login",
   limiter,
@@ -44,14 +46,30 @@ router.post(
   ctrl.login
 );
 
-// Google authentication for already-linked accounts.
+// Google login for already-linked accounts.
 router.post(
   "/google/login",
   limiter,
   ctrl.googleLogin
 );
 
-// Password recovery.
+// Google registration with business validation.
+router.post(
+  "/google/register",
+  limiter,
+  validate(googleRegisterSchema),
+  ctrl.googleRegister
+);
+
+// Link a Google account to an existing account.
+router.post(
+  "/google/link",
+  limiter,
+  authenticate,
+  ctrl.googleLink
+);
+
+// Request a password reset.
 router.post(
   "/forgot-password",
   limiter,
@@ -59,6 +77,7 @@ router.post(
   ctrl.forgotPassword
 );
 
+// Verify a password reset token.
 router.post(
   "/verify-reset-token",
   limiter,
@@ -66,6 +85,7 @@ router.post(
   ctrl.verifyResetToken
 );
 
+// Reset the account password.
 router.post(
   "/reset-password",
   limiter,
@@ -73,26 +93,17 @@ router.post(
   ctrl.resetPassword
 );
 
-// Session management.
-router.post("/logout", ctrl.logout);
+// End the current session.
+router.post(
+  "/logout",
+  ctrl.logout
+);
 
+// Get the authenticated user's profile.
 router.get(
   "/profile",
   authenticate,
   ctrl.profile
-);
-
-router.post(
-  "/google/register",
-  limiter,
-  ctrl.googleRegister
-);
-
-router.post(
-  "/google/link",
-  limiter,
-  authenticate,
-  ctrl.googleLink
 );
 
 module.exports = router;

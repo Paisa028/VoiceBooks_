@@ -14,16 +14,19 @@ const API_URL = (import.meta.env.VITE_API_URL || "").replace(
   ""
 );
 
-// Send a verified Google credential to the VoiceBooks backend.
+// Send Google credentials to the VoiceBooks backend for verification.
 async function googleRequest(path, payload) {
-  const response = await fetch(`${API_URL}/api/auth/google/${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_URL}/api/auth/google/${path}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   const data = await response.json().catch(() => ({}));
 
@@ -51,7 +54,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore the existing VoiceBooks session.
+  // Restore an existing session.
   useEffect(() => {
     let active = true;
 
@@ -78,7 +81,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // Traditional login.
+  // Sign in using email and password.
   const login = useCallback(async (credentials) => {
     const { user: loggedInUser } = await api.login(
       credentials
@@ -89,7 +92,7 @@ export function AuthProvider({ children }) {
     return loggedInUser;
   }, []);
 
-  // Traditional registration.
+  // Register using email and password.
   const register = useCallback(async (payload) => {
     const { user: registeredUser } = await api.register(
       payload
@@ -100,33 +103,71 @@ export function AuthProvider({ children }) {
     return registeredUser;
   }, []);
 
-  // Google login for accounts already linked to VoiceBooks.
+  // Sign in using an already-linked Google account.
   const googleLogin = useCallback(async (credential) => {
-    const loggedInUser = await googleRequest("login", {
-      credential,
-    });
+    if (!credential) {
+      throw new Error(
+        "Google authentication is required."
+      );
+    }
+
+    const loggedInUser = await googleRequest(
+      "login",
+      { credential }
+    );
 
     setUser(loggedInUser);
 
     return loggedInUser;
   }, []);
 
-  // Register a new Business Owner using Google.
+  // Register with Google using the selected account role.
   const googleRegister = useCallback(
-    async ({ credential, business }) => {
+    async ({ credential, role, business }) => {
       if (!credential) {
         throw new Error(
           "Google authentication is required."
         );
       }
 
+      if (!role) {
+        throw new Error(
+          "Please select an account type."
+        );
+      }
+
+      // The current Google signup endpoint supports
+      // public registration for Business Owners only.
+      if (role !== "business_owner") {
+        const error = new Error(
+          "Google registration for this account type " +
+          "requires an authorised registration flow."
+        );
+
+        error.status = 403;
+        error.errors = {
+          role: "This account type cannot be registered directly.",
+        };
+
+        throw error;
+      }
+
       const registeredUser = await googleRequest(
         "register",
         {
           credential,
+          role,
           business,
         }
       );
+
+      if (registeredUser.role !== role) {
+        // Never store an unexpected role in the frontend state.
+        // The backend must enforce the role restriction.
+        throw new Error(
+          "The registered account type does not match the selected role."
+        );
+      }
 
       setUser(registeredUser);
 
@@ -135,20 +176,19 @@ export function AuthProvider({ children }) {
     []
   );
 
-  // End the VoiceBooks session.
+  // Sign out of VoiceBooks.
   const logout = useCallback(async () => {
     await api.logout();
-
     setUser(null);
   }, []);
 
-  // Reload the current profile from the backend.
+  // Refresh the authenticated user's profile.
   const refresh = useCallback(async () => {
     const { user: refreshedUser } = await api.profile();
 
-    setUser(refreshedUser);
+    setUser(refreshedUser || null);
 
-    return refreshedUser;
+    return refreshedUser || null;
   }, []);
 
   const value = useMemo(
