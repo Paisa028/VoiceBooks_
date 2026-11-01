@@ -102,6 +102,126 @@ const createUserWithBusiness = db.transaction(
   }
 );
 
+/**
+ * Create an Accountant or Auditor without granting
+ * access to any business or financial records.
+ */
+const createProfessionalUser = db.transaction(({ user }) => {
+  const allowedRoles = ["accountant", "auditor"];
+
+  if (!allowedRoles.includes(user.role)) {
+    const error = new Error("Invalid professional role.");
+    error.status = 403;
+    throw error;
+  }
+
+  const role = db
+    .prepare("SELECT id FROM roles WHERE name = ?")
+    .get(user.role);
+
+  if (!role) {
+    const error = new Error(
+      "Professional role is not available."
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const result = db
+    .prepare(`
+      INSERT INTO users (
+        email,
+        password_hash,
+        first_name,
+        last_name,
+        phone,
+        role_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    .run(
+      user.email,
+      user.passwordHash,
+      user.firstName,
+      user.lastName,
+      user.phone || null,
+      role.id
+    );
+
+  // Business access requires a separate assignment.
+  return Number(result.lastInsertRowid);
+});
+
+// Create a Google professional account without business access.
+const createGoogleProfessionalUser = db.transaction(
+  ({ googleUser, role, passwordHash }) => {
+    if (!["accountant", "auditor"].includes(role)) {
+      const error = new Error("Invalid professional role.");
+      error.status = 403;
+      throw error;
+    }
+
+    if (
+      !googleUser?.googleSub ||
+      !googleUser?.email ||
+      typeof passwordHash !== "string"
+    ) {
+      const error = new Error("Invalid Google account.");
+      error.status = 400;
+      throw error;
+    }
+
+    if (
+      findRowByEmail(googleUser.email) ||
+      findRowByGoogleSub(googleUser.googleSub)
+    ) {
+      const error = new Error(
+        "This account already exists. Sign in instead."
+      );
+      error.status = 409;
+      throw error;
+    }
+
+    const roleRow = db
+      .prepare("SELECT id FROM roles WHERE name = ?")
+      .get(role);
+
+    if (!roleRow) {
+      throw new Error("Professional role is unavailable.");
+    }
+
+    const result = db.prepare(`
+      INSERT INTO users (
+        email,
+        password_hash,
+        first_name,
+        last_name,
+        role_id,
+        onboarding_completed
+      )
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(
+      googleUser.email,
+      passwordHash,
+      googleUser.firstName || "Google",
+      googleUser.lastName || "User",
+      roleRow.id
+    );
+
+    const userId = Number(result.lastInsertRowid);
+
+    db.prepare(`
+      INSERT INTO user_google_accounts (
+        user_id,
+        google_sub
+      )
+      VALUES (?, ?)
+    `).run(userId, googleUser.googleSub);
+
+    return userId;
+  }
+);
+
 // --------------------------------------------------
 // SAGE
 // --------------------------------------------------
@@ -464,6 +584,7 @@ module.exports = {
   findRowById,
   toPublic,
   createUserWithBusiness,
+  createProfessionalUser,
   createGoogleUserWithBusiness,
   findRowByGoogleSub,
   linkGoogleAccount,
@@ -475,4 +596,5 @@ module.exports = {
   findValidResetToken,
   consumeResetToken,
   recentResetTokenExists,
+  createGoogleProfessionalUser,
 };

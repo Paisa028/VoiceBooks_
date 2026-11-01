@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Alert from "../components/Alert.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
@@ -10,6 +10,7 @@ import FormField from "../components/FormField.jsx";
 import { useAuth } from "../hooks/useAuth.js";
 import { useForm } from "../hooks/useForm.js";
 import { validateLogin } from "../utils/validators.js";
+import { useSignup } from "../hooks/useSignup.js";
 
 const GOOGLE_SCRIPT =
   "https://accounts.google.com/gsi/client";
@@ -23,6 +24,9 @@ export default function Login() {
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
+
+  const navigate = useNavigate();
+  const { update } = useSignup();
 
   const googleClientId =
     import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -83,6 +87,24 @@ if (responseText) {
 }
 
 if (!result.ok) {
+  if (
+    result.status === 404 &&
+    data.code === "GOOGLE_SIGNUP_REQUIRED"
+  ) {
+    // Continue registration with the verified Google token.
+    update({
+      authMethod: "google",
+      googleCredential: response.credential,
+      googleCredentialAt: Date.now(),
+      account: null,
+      role: "",
+    });
+
+    // Allow the user to choose their account type.
+    navigate("/signup/role");
+    return;
+  }
+
   throw new Error(
     data.message ||
       `Google sign-in failed (HTTP ${result.status}).`
@@ -102,7 +124,7 @@ if (!result.ok) {
         setGoogleLoading(false);
       }
     },
-    [refresh]
+      [refresh, navigate, update]
   );
 
   useEffect(() => {

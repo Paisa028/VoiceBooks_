@@ -30,13 +30,13 @@ const {
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-const LOCAL_TEST_ROLES = [
+const PUBLIC_REGISTRATION_ROLES = [
   "business_owner",
   "accountant",
   "auditor",
 ];
 
-// Register a new account with email and password.
+// Register accounts without granting automatic business access.
 async function register(req, res) {
   const {
     email,
@@ -50,21 +50,25 @@ async function register(req, res) {
 
   const requestedRole = role || "business_owner";
 
-  const isLocalDevelopment =
-    !config.isProd &&
-    process.env.ALLOW_TEST_ROLE_REGISTRATION === "true";
-
-  const allowedRoles = isLocalDevelopment
-    ? LOCAL_TEST_ROLES
-    : ["business_owner"];
-
-  if (!allowedRoles.includes(requestedRole)) {
+  if (!PUBLIC_REGISTRATION_ROLES.includes(requestedRole)) {
     return res.status(403).json({
       message: "Registration is not allowed for this role.",
       errors: {
-        role: isLocalDevelopment
-          ? "Select Business Owner, Accountant or Auditor."
-          : "Public registration is available for Business Owners only.",
+        role: "Select Business Owner, Accountant or Auditor.",
+      },
+    });
+  }
+
+  if (
+    requestedRole === "business_owner" &&
+    (!business ||
+      typeof business !== "object" ||
+      Array.isArray(business))
+  ) {
+    return res.status(400).json({
+      message: "Business details are required.",
+      errors: {
+        business: "Complete your business information.",
       },
     });
   }
@@ -82,20 +86,37 @@ async function register(req, res) {
 
   const passwordHash = await hashPassword(password);
 
+  const userData = {
+    email,
+    passwordHash,
+    firstName,
+    lastName,
+    phone: phone || null,
+    role: requestedRole,
+  };
+
   let userId;
 
   try {
-    userId = await accounts.createUserWithBusiness({
-      user: {
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        phone: phone || null,
-        role: requestedRole,
-      },
-      business,
-    });
+    if (requestedRole === "business_owner") {
+      // Owners create their own business profiles.
+      userId = await accounts.createUserWithBusiness({
+        user: userData,
+        business,
+      });
+    } else {
+      // Professionals are created without business assignments.
+      if (typeof accounts.createProfessionalUser !== "function") {
+        return res.status(503).json({
+          message:
+            "Professional account registration is not configured.",
+        });
+      }
+
+      userId = await accounts.createProfessionalUser({
+        user: userData,
+      });
+    }
   } catch (err) {
     if (
       err.code === "ACCOUNT_EXISTS" ||
@@ -106,6 +127,12 @@ async function register(req, res) {
         errors: {
           email: "This email is already registered.",
         },
+      });
+    }
+
+    if (err.status >= 400 && err.status < 500) {
+      return res.status(err.status).json({
+        message: err.message,
       });
     }
 
@@ -157,11 +184,16 @@ async function login(req, res) {
   });
 }
 
-// Sign in with an already-linked Google account.
+/**
+ * Sign in with Google.
+ * Linked users sign in directly.
+ * New users continue to VoiceBooks registration.
+ */
 async function googleLogin(req, res) {
   try {
     const { credential } = req.body || {};
 
+    // Verify the Google identity on the server.
     const googleUser = await verifyGoogleCredential(credential);
 
     const userRow = await accounts.findRowByGoogleSub(
@@ -169,22 +201,40 @@ async function googleLogin(req, res) {
     );
 
     if (!userRow) {
-      return res.status(401).json({
+      // Never link an account using email alone.
+      const existingEmailAccount =
+        await accounts.findRowByEmail(googleUser.email);
+
+      if (existingEmailAccount) {
+        return res.status(409).json({
+          code: "GOOGLE_LINK_REQUIRED",
+          message:
+            "An account with this email already exists. Sign in with your VoiceBooks password and connect Google in your account settings.",
+        });
+      }
+
+      // A new Google user must complete registration.
+      return res.status(404).json({
+        code: "GOOGLE_SIGNUP_REQUIRED",
         message:
-          "This Google account is not linked to VoiceBooks. Please register or link your account first.",
+          "Complete your VoiceBooks registration.",
       });
     }
 
+    // Sign in to the existing linked VoiceBooks account.
     const user = accounts.toPublic(userRow);
 
     setAuthCookie(res, signToken(user));
 
-    return res.json({
+    return res.status(200).json({
       message: "Signed in with Google successfully.",
       user,
     });
   } catch (error) {
-    console.error("Google login failed:", error.message);
+    console.error(
+      "Google login failed:",
+      error.message
+    );
 
     return res.status(error.status || 500).json({
       message: error.status
@@ -195,84 +245,77 @@ async function googleLogin(req, res) {
 }
 
 // Register a Business Owner using a verified Google account.
+
 async function googleRegister(req, res) {
   try {
     const {
-  credential,
-  business,
-  role = "business_owner",
-} = req.body || {};
+      credential,
+      role = "business_owner",
+      business,
+    } = req.body || {};
 
-if (role !== "business_owner") {
-  return res.status(403).json({
-    message:
-      "This account type requires an invitation or authorised registration.",
-    errors: {
-      role:
-        "Google self-registration is currently available for Business Owners only.",
-    },
-  });
-}
-
-    if (
-      !business ||
-      typeof business !== "object" ||
-      Array.isArray(business)
-    ) {
-      return res.status(400).json({
-        message: "Business details are required.",
+    if (!PUBLIC_REGISTRATION_ROLES.includes(role)) {
+      return res.status(403).json({
+        message: "Registration is not allowed for this role.",
       });
     }
 
-    const requiredFields = [
-      "businessName",
-      "industry",
-      "businessSize",
-      "country",
-      "currency",
-    ];
+    // Always verify the Google ID token on the server.
+    const googleUser = await verifyGoogleCredential(credential);
 
-    const missingField = requiredFields.find(
-      (field) =>
-        typeof business[field] !== "string" ||
-        !business[field].trim()
+    const existingEmail = await accounts.findRowByEmail(
+      googleUser.email
     );
 
-    if (missingField) {
-      return res.status(400).json({
-        message: `Invalid or missing business field: ${missingField}.`,
+    const existingGoogle = await accounts.findRowByGoogleSub(
+      googleUser.googleSub
+    );
+
+    if (existingEmail || existingGoogle) {
+      return res.status(409).json({
+        message:
+          "This account already exists. Please sign in or link your Google account.",
       });
-    }
-
-    const googleUser = await verifyGoogleCredential(
-      credential
-    );
-
-    if (
-      typeof accounts.createGoogleUserWithBusiness !== "function"
-    ) {
-      throw new Error(
-        "Google registration is not supported by the configured database."
-      );
     }
 
     const passwordHash =
       await createGoogleAccountPasswordHash();
 
-    const userId = await accounts.createGoogleUserWithBusiness({
-      googleUser,
-      business: {
-        businessName: business.businessName.trim(),
-        registrationNumber:
-          business.registrationNumber || null,
-        vatNumber: business.vatNumber || null,
-        industry: business.industry.trim(),
-        businessSize: business.businessSize.trim(),
-        country: business.country.trim(),
-        currency: business.currency.trim(),
-      },
-      passwordHash,
-    });
+    let userId;
+
+    if (role === "business_owner") {
+      if (
+        !business ||
+        typeof business !== "object" ||
+        Array.isArray(business)
+      ) {
+        return res.status(400).json({
+          message: "Business details are required.",
+        });
+      }
+
+      userId = await accounts.createGoogleUserWithBusiness({
+        googleUser,
+        passwordHash,
+        business,
+      });
+    } else {
+      if (
+        typeof accounts.createGoogleProfessionalUser !==
+        "function"
+      ) {
+        return res.status(503).json({
+          message:
+            "Google professional registration is not configured.",
+        });
+      }
+
+      userId = await accounts.createGoogleProfessionalUser({
+        googleUser,
+        role,
+        passwordHash,
+      });
+    }
 
     const userRow = await accounts.findRowById(userId);
 
@@ -295,7 +338,10 @@ if (role !== "business_owner") {
         "SQLITE_CONSTRAINT"
       );
 
-    console.error("Google registration failed:", error.message);
+    console.error(
+      "Google registration failed:",
+      error.message
+    );
 
     return res.status(
       duplicate ? 409 : error.status || 500

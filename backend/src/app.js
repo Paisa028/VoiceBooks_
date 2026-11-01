@@ -20,8 +20,12 @@ const transcriptionRoutes = require("./routes/transcriptionRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
 const settingsRoutes = require("./routes/settings.routes.js");
 
-// Sage Accounting OAuth integration
+// Sage Accounting integration
 const sageRoutes = require("./routes/sage.routes.js");
+
+// Professional access and auditor routes
+const manageAccessRoutes = require("./routes/manageAccess.routes.js");
+const auditorRoutes = require("./routes/auditor.routes.js");
 
 const app = express();
 
@@ -39,6 +43,7 @@ app.use(
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 
+// Health endpoints
 app.get("/", (req, res) => {
   res.status(200).json({
     application: "VoiceBooks API",
@@ -62,16 +67,21 @@ app.use("/api/admin", adminRoutes);
 // Accountant workspace
 app.use("/api/accountant", accountantRoutes);
 
+// Auditor read-only workspace
+app.use("/api/auditor", auditorRoutes);
+
 // Voice transactions
 app.use("/api/transcriptions", transcriptionRoutes);
 app.use("/api/transactions", transactionRoutes);
 
-// Business settings
+// Business settings and professional access
 app.use("/api/settings", settingsRoutes);
+app.use("/api/manage-access", manageAccessRoutes);
 
 // Sage Accounting integration
 app.use("/api/sage", sageRoutes);
 
+// Unknown API routes and error handler must be last.
 app.use("/api", notFound);
 app.use(errorHandler);
 

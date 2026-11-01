@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import Logo from "./Logo.jsx";
 import Alert from "./Alert.jsx";
 
+// Business Owner navigation
 const businessOwnerLinks = [
   { to: "/dashboard", icon: "⌂", label: "Dashboard" },
   { to: "/transactions/new", icon: "◉", label: "Record Transaction" },
@@ -13,31 +14,41 @@ const businessOwnerLinks = [
   { to: "/ledger", icon: "▣", label: "Ledger" },
   { to: "/reports", icon: "▥", label: "Reports" },
   { to: "/integrations", icon: "↗", label: "Integrations" },
+  { to: "/manage-access", icon: "♙", label: "Manage Access" },
   { to: "/settings", icon: "⚙", label: "Settings" },
 ];
 
+// Accountant navigation
 const accountantLinks = [
   { to: "/accountant", icon: "⌂", label: "Dashboard" },
   { to: "/accountant/clients", icon: "♙", label: "Clients" },
+  { to: "/accountant/integrations", icon: "↗", label: "Integrations" },
   { to: "/accountant/approved", icon: "✓", label: "Approved" },
   { to: "/accountant/returned", icon: "↩", label: "Returned" },
   { to: "/accountant/profile", icon: "◎", label: "Profile" },
 ];
 
-// Auditor currently has a basic dashboard.
-// Additional read-only pages can be added later.
+// Auditor navigation
 const auditorLinks = [
-  { to: "/auditor", icon: "⌂", label: "Dashboard" },
+  { to: "/auditor", icon: "⌂", label: "Overview" },
+  { to: "/auditor/businesses", icon: "▱", label: "Assigned Businesses" },
+  { to: "/auditor/transactions", icon: "☷", label: "Transactions Review" },
+  { to: "/auditor/audit-trail", icon: "◷", label: "Audit Trail" },
+  { to: "/auditor/profile", icon: "◎", label: "Profile" },
+  { to: "/auditor/settings", icon: "⚙", label: "Settings" },
 ];
 
 function getRoleHome(role) {
   switch (role) {
     case "accountant":
       return "/accountant";
+
     case "auditor":
       return "/auditor";
+
     case "business_owner":
       return "/dashboard";
+
     default:
       return "/";
   }
@@ -47,12 +58,15 @@ function getProfilePath(role) {
   switch (role) {
     case "accountant":
       return "/accountant/profile";
+
+    case "auditor":
+      return "/auditor/profile";
+
     case "business_owner":
       return "/settings";
-    case "auditor":
-      return "/auditor";
+
     default:
-      return "/";
+      return getRoleHome(role);
   }
 }
 
@@ -64,6 +78,7 @@ export default function AppSidebar() {
   const [error, setError] = useState("");
 
   const role = String(user?.role || "").toLowerCase();
+  const isAuditor = role === "auditor";
 
   const displayName =
     user?.name ||
@@ -95,7 +110,7 @@ export default function AppSidebar() {
   const links =
     role === "accountant"
       ? accountantLinks
-      : role === "auditor"
+      : isAuditor
         ? auditorLinks
         : role === "business_owner"
           ? businessOwnerLinks
@@ -104,7 +119,6 @@ export default function AppSidebar() {
   const homePath = getRoleHome(role);
   const profilePath = getProfilePath(role);
 
-  // Use a saved profile image when the backend provides one.
   const profilePhoto =
     user?.profilePhotoUrl ||
     user?.avatarUrl ||
@@ -129,7 +143,13 @@ export default function AppSidebar() {
   }
 
   return (
-    <aside className="app-sidebar">
+    <aside
+      className={
+        isAuditor
+          ? "app-sidebar auditor-sidebar"
+          : "app-sidebar"
+      }
+    >
       <NavLink
         to={homePath}
         className="sidebar-brand"
@@ -137,6 +157,22 @@ export default function AppSidebar() {
       >
         <Logo />
       </NavLink>
+
+      {isAuditor && (
+        <div className="auditor-sidebar-workspace">
+          <span
+            className="auditor-sidebar-workspace-icon"
+            aria-hidden="true"
+          >
+            ◈
+          </span>
+
+          <div className="auditor-sidebar-workspace-text">
+            <strong>Auditor Workspace</strong>
+            <small>Independent Review &amp; Assurance</small>
+          </div>
+        </div>
+      )}
 
       <nav
         className="sidebar-navigation"
@@ -146,11 +182,11 @@ export default function AppSidebar() {
           <NavLink
             key={link.to}
             to={link.to}
-            end={
-              link.to === "/dashboard" ||
-              link.to === "/accountant" ||
-              link.to === "/auditor"
-            }
+            end={[
+              "/dashboard",
+              "/accountant",
+              "/auditor",
+            ].includes(link.to)}
             className={({ isActive }) =>
               isActive
                 ? "sidebar-link active"
@@ -164,19 +200,30 @@ export default function AppSidebar() {
               {link.icon}
             </span>
 
-            <span>{link.label}</span>
+            <span className="sidebar-link-label">
+              {link.label}
+            </span>
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-bottom">
+        {isAuditor && (
+          <div className="auditor-sidebar-notice">
+            <strong>READ-ONLY ACCESS</strong>
+            <p>
+              Review financial records from businesses
+              that have authorised you.
+            </p>
+          </div>
+        )}
+
         {error && (
           <Alert type="error">
             {error}
           </Alert>
         )}
 
-        {/* Clicking the avatar or name opens the profile. */}
         <NavLink
           to={profilePath}
           className="sidebar-user sidebar-profile-link"

@@ -16,6 +16,7 @@ import Ledger from "./pages/Ledger.jsx";
 import Reports from "./pages/Reports.jsx";
 import Integrations from "./pages/Integrations.jsx";
 import Settings from "./pages/Settings.jsx";
+import ManageAccess from "./pages/ManageAccess.jsx";
 
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import Login from "./pages/Login.jsx";
@@ -44,6 +45,16 @@ import ClientManagement from "./pages/accountant/Clients.jsx";
 import ClientDetails from "./pages/accountant/ClientDetails.jsx";
 import ReturnedTransactions from "./pages/accountant/ReturnedTransactions.jsx";
 import AccountantTransactionReview from "./pages/accountant/TransactionReview.jsx";
+import AccountantIntegrations from "./pages/accountant/AccountantIntegrations.jsx";
+import AuditorProfile from "./pages/auditor/AuditorProfile.jsx";
+
+// Auditor
+import AuditorDashboard from "./pages/auditor/AuditorDashboard.jsx";
+import AuditorSettings from "./pages/auditor/AuditorSettings.jsx";
+import AuditorBusinesses from "./pages/auditor/AuditorBusinesses.jsx";
+import AuditorTransactions from "./pages/auditor/AuditorTransactions.jsx";
+import AuditorAuditTrail from "./pages/auditor/AuditorAuditTrail.jsx";
+
 
 const guest = (element) => (
   <GuestRoute>{element}</GuestRoute>
@@ -121,26 +132,6 @@ function NotFound() {
   );
 }
 
-function AuditorDashboard() {
-  const { user } = useAuth();
-
-  return (
-    <main className="dashboard-page">
-      <h1>Auditor Dashboard</h1>
-
-      <p>
-        Welcome, {user?.firstName || "Auditor"}.
-      </p>
-
-      <p>
-        Your account is ready. Audit reports and
-        read-only financial records will appear here
-        once auditor permissions are implemented.
-      </p>
-    </main>
-  );
-}
-
 export default function App() {
   return (
     <Routes>
@@ -185,6 +176,46 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+  
+      
+<Route
+  path="/manage-access"
+  element={
+    <RoleGuard roles={["business_owner"]}>
+      <ManageAccess />
+    </RoleGuard>
+  }
+/>
+
+
+<Route
+  path="/auditor/businesses"
+  element={
+    <RoleGuard roles={["auditor"]}>
+      <AuditorBusinesses />
+    </RoleGuard>
+  }
+/>
+
+<Route
+  path="/auditor/transactions"
+  element={
+    <RoleGuard roles={["auditor"]}>
+      <AuditorTransactions />
+    </RoleGuard>
+  }
+/>
+
+<Route
+  path="/auditor/audit-trail"
+  element={
+    <RoleGuard roles={["auditor"]}>
+      <AuditorAuditTrail />
+    </RoleGuard>
+  }
+/>
+
+
 
       {/* Authenticated application */}
       <Route
@@ -385,11 +416,45 @@ export default function App() {
             </RoleGuard>
           }
         />
+
+        
+<Route
+  path="/auditor/settings"
+  element={
+    <RoleGuard roles={["auditor"]}>
+      <AuditorSettings />
+    </RoleGuard>
+  }
+/>
+
+        
+<Route
+  path="/auditor/profile"
+  element={
+    <RoleGuard roles={["auditor"]}>
+      <AuditorProfile />
+    </RoleGuard>
+  }
+/>
+
+        <Route
+  path="/accountant/integrations"
+  element={
+    <RoleGuard roles={["accountant"]}>
+      <AccountantIntegrations />
+    </RoleGuard>
+  }
+/>
+
+
       </Route>
 
       {/* Default routes */}
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+
+
+
   );
 }

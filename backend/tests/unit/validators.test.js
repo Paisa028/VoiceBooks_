@@ -382,26 +382,34 @@ describe('Auth Validators', () => {
       expect(result.error.errors[0].message).toBe('This reset link is invalid');
     });
   });
-
-  describe('SELF_ASSIGNABLE_ROLES', () => {
-    it('should only allow public Business Owner registration', () => {
+  
+  describe("SELF_ASSIGNABLE_ROLES", () => {
+    it("should allow public registration for all three account types", () => {
       expect(validators.SELF_ASSIGNABLE_ROLES).toEqual([
-        'business_owner',
+        "business_owner",
+        "accountant",
+        "auditor",
       ]);
-
-      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('admin');
-      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('accountant');
-      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain('auditor');
     });
 
-    it('should recognise supported account roles', () => {
+    it("should never allow public admin registration", () => {
+      expect(validators.SELF_ASSIGNABLE_ROLES).not.toContain(
+        "admin"
+      );
+    });
+
+    it("should recognise supported account roles", () => {
       expect(validators.REGISTRATION_ROLES).toEqual(
         expect.arrayContaining([
-          'business_owner',
-          'accountant',
-          'auditor',
+          "business_owner",
+          "accountant",
+          "auditor",
         ])
       );
     });
   });
 });
+
+ 
+ 
+

@@ -7,10 +7,12 @@ const app = require("./app");
 // Imports the shared configuration
 const { config } = require("./config");
 
+
 async function start() {
   if (config.databaseProvider === 'firebase') {
     await require('./firebase/client').checkConnection();
   }
+
   app.listen(config.port, () => {
     console.log(`VoiceBooks API running on http://localhost:${config.port} (${config.databaseProvider})`);
   });

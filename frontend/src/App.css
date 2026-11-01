@@ -7426,5 +7426,499 @@ button.accountant-stat-card:hover {
   }
 }
 
+/* Auditor business page controls */
+.auditor-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 10px 17px;
+  border: 1px solid #c5dfd2;
+  border-radius: 10px;
+  background: #eaf6ef;
+  color: #096747;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
 
+.auditor-refresh-btn:hover:not(:disabled) {
+  background: #d9efe3;
+  transform: translateY(-1px);
+}
 
+.auditor-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auditor-refresh-btn:focus-visible {
+  outline: 3px solid #7cc6a4;
+  outline-offset: 2px;
+}
+
+.auditor-refresh-icon.spinning {
+  animation: auditor-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes auditor-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auditor-readonly-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  background: #e8f5ed;
+  border: 1px solid #c5e4d0;
+  border-radius: 20px;
+  color: #08734e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auditor-refresh-icon.spinning {
+    animation: none;
+  }
+
+  .auditor-refresh-btn {
+    transition: none;
+  }
+}
+
+/* Auditor Overview navigation cards */
+.auditor-dashboard .auditor-workspace-section {
+  width: 100%;
+  margin-top: 26px;
+}
+
+.auditor-dashboard .auditor-workspace-heading {
+  margin-bottom: 18px;
+}
+
+.auditor-dashboard .auditor-workspace-heading h2 {
+  margin: 0 0 6px;
+  color: #073d32;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.auditor-dashboard .auditor-workspace-heading p {
+  margin: 0;
+  color: #73847c;
+  font-size: 13px;
+}
+
+.auditor-dashboard .auditor-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.auditor-dashboard button.auditor-workspace-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+  min-width: 0;
+  min-height: 185px;
+  padding: 22px;
+  border: 1px solid #dce8e0;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #103c32;
+  font-family: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(12, 60, 45, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auditor-dashboard button.auditor-workspace-card:hover {
+  transform: translateY(-3px);
+  border-color: #4fa985;
+  box-shadow: 0 12px 28px rgba(12, 60, 45, 0.12);
+}
+
+.auditor-dashboard .auditor-workspace-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  background: #e5f5ec;
+  color: #087556;
+  font-size: 23px;
+}
+
+.auditor-dashboard .auditor-workspace-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+}
+
+.auditor-dashboard .auditor-workspace-content strong {
+  color: #103c32;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.auditor-dashboard .auditor-workspace-content small {
+  color: #73847c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auditor-dashboard .auditor-workspace-arrow {
+  align-self: flex-end;
+  margin-top: auto;
+  color: #087556;
+  font-size: 22px;
+}
+
+.auditor-dashboard button.auditor-workspace-card:focus-visible {
+  outline: 3px solid #48aa83;
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .auditor-dashboard .auditor-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auditor-dashboard button.auditor-workspace-card {
+    min-height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auditor-dashboard button.auditor-workspace-card {
+    transition: none;
+  }
+
+  .auditor-dashboard button.auditor-workspace-card:hover {
+    transform: none;
+  }
+}
+
+/* VoiceBooks Sidebar - Auditor visual improvements */
+
+/* Prevent long text from overflowing */
+.app-sidebar,
+.app-sidebar * {
+  box-sizing: border-box;
+}
+
+.app-sidebar {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Auditor workspace introduction */
+.app-sidebar .sidebar-workspace,
+.app-sidebar .sidebar-role-card,
+.app-sidebar .sidebar-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: calc(100% - 20px);
+  min-width: 0;
+  margin: 12px 10px 18px;
+  padding: 14px 12px;
+  border: 1px solid rgba(117, 224, 174, 0.32);
+  border-radius: 12px;
+  background: rgba(3, 76, 57, 0.45);
+  color: #ffffff;
+}
+
+.app-sidebar .sidebar-workspace strong,
+.app-sidebar .sidebar-role-card strong,
+.app-sidebar .sidebar-intro strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-sidebar .sidebar-workspace small,
+.app-sidebar .sidebar-role-card small,
+.app-sidebar .sidebar-intro small {
+  display: block;
+  margin-top: 4px;
+  color: #c4e2d4;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* Navigation links */
+.app-sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  margin: 3px 9px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  color: #e8f5ed;
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.app-sidebar nav a:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.app-sidebar nav a.active,
+.app-sidebar nav a[aria-current="page"] {
+  background: #078765;
+  color: #ffffff;
+}
+
+/* Footer readability */
+.app-sidebar .sidebar-footer,
+.app-sidebar .sidebar-bottom {
+  min-width: 0;
+  padding: 14px 12px;
+}
+
+.app-sidebar .sidebar-footer strong,
+.app-sidebar .sidebar-bottom strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-sidebar .sidebar-footer p,
+.app-sidebar .sidebar-bottom p {
+  margin: 6px 0 12px;
+  color: #d5eade;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-sidebar .sidebar-workspace,
+  .app-sidebar .sidebar-role-card,
+  .app-sidebar .sidebar-intro {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+}
+
+/* Auditor Sidebar */
+
+.app-sidebar.auditor-sidebar {
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.auditor-sidebar *,
+.auditor-sidebar *::before,
+.auditor-sidebar *::after {
+  box-sizing: border-box;
+}
+
+/* Workspace identity */
+
+.auditor-sidebar .auditor-sidebar-workspace {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: calc(100% - 20px);
+  min-width: 0;
+  margin: 12px 10px 20px;
+  padding: 14px 12px;
+  border: 1px solid rgba(128, 224, 174, 0.35);
+  border-radius: 12px;
+  background: rgba(4, 85, 64, 0.45);
+}
+
+.auditor-sidebar .auditor-sidebar-workspace-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: #a5efd0;
+  font-size: 19px;
+}
+
+.auditor-sidebar .auditor-sidebar-workspace-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.auditor-sidebar .auditor-sidebar-workspace-text strong {
+  display: block;
+  margin: 0;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+
+.auditor-sidebar .auditor-sidebar-workspace-text small {
+  display: block;
+  margin: 0;
+  color: #b8dfcd;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+/* Navigation */
+
+.auditor-sidebar .sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.auditor-sidebar .sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 43px;
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: #e2f5e9;
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: normal;
+  transition: background 0.2s ease;
+}
+
+.auditor-sidebar .sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.auditor-sidebar .sidebar-link.active {
+  background: #078765;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.auditor-sidebar .sidebar-link-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 19px;
+  width: 19px;
+  font-size: 15px;
+}
+
+.auditor-sidebar .sidebar-link-label {
+  min-width: 0;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+/* Bottom section */
+
+.auditor-sidebar .sidebar-bottom {
+  min-width: 0;
+  padding: 15px 10px 18px;
+}
+
+.auditor-sidebar .auditor-sidebar-notice {
+  margin-bottom: 15px;
+  padding: 13px 12px;
+  border: 1px solid rgba(139, 226, 181, 0.25);
+  border-radius: 11px;
+  background: rgba(2, 72, 54, 0.42);
+}
+
+.auditor-sidebar .auditor-sidebar-notice strong {
+  display: block;
+  color: #d5f6e3;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.auditor-sidebar .auditor-sidebar-notice p {
+  margin: 7px 0 0;
+  color: #c3e4d1;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+/* Profile */
+
+.auditor-sidebar .sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.auditor-sidebar .sidebar-avatar {
+  flex-shrink: 0;
+}
+
+.auditor-sidebar .sidebar-user-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+
+.auditor-sidebar .sidebar-user-details strong {
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.auditor-sidebar .sidebar-user-details span {
+  color: #b7ddcc;
+  font-size: 10px;
+}
+
+.auditor-sidebar .sidebar-profile-arrow {
+  flex-shrink: 0;
+}
+
+/* Accessibility */
+
+.auditor-sidebar .sidebar-link:focus-visible,
+.auditor-sidebar .sidebar-profile-link:focus-visible,
+.auditor-sidebar .sidebar-signout:focus-visible {
+  outline: 2px solid #a0ecc5;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auditor-sidebar .sidebar-link {
+    transition: none;
+  }
+}

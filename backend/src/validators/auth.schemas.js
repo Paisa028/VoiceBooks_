@@ -15,11 +15,13 @@ const REGISTRATION_ROLES = [
   "accountant",
   "auditor",
 ];
-
-// Only Business Owners can register publicly.
-// Accountant and Auditor require authorised access.
-const SELF_ASSIGNABLE_ROLES = ["business_owner"];
-
+// These account types can register publicly.
+// Access to a client's business requires separate authorisation.
+const SELF_ASSIGNABLE_ROLES = [
+  "business_owner",
+  "accountant",
+  "auditor",
+];
 // --------------------------------------------------
 // EMAIL
 // --------------------------------------------------
@@ -181,6 +183,7 @@ const business = z.object({
 // Validate email/password registration.
 // Role recognition does not grant permission.
 // The controller decides whether registration is allowed.
+
 const registerSchema = z
   .object({
     firstName: name("First name"),
@@ -194,17 +197,52 @@ const registerSchema = z
       .string()
       .min(1, "Confirm your password"),
 
-    // Admin is deliberately excluded.
-    // Privileged roles need server-side authorisation.
+    // Only recognised public account types are accepted.
     role: z.enum(REGISTRATION_ROLES, {
-  errorMap: () => ({
-    message: 'Choose an account type',
-  }),
-}),
+      errorMap: () => ({
+        message: "Choose an account type",
+      }),
+    }),
 
-    business,
+    // Professional accounts do not need a business profile.
+    business: business.optional(),
   })
-  .refine(confirmMatches, mismatch);
+  .superRefine((data, ctx) => {
+    // Validate password confirmation.
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+      });
+    }
+
+    // Business Owners must provide valid business details.
+    if (
+      data.role === "business_owner" &&
+      !data.business
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["business"],
+        message:
+          "Business details are required for Business Owners.",
+      });
+    }
+
+    // Professional accounts must not create a business on signup.
+    if (
+      ["accountant", "auditor"].includes(data.role) &&
+      data.business
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["business"],
+        message:
+          "Professional accounts do not create a business during registration.",
+      });
+    }
+  });
 
 // --------------------------------------------------
 // GOOGLE REGISTER
@@ -212,22 +250,43 @@ const registerSchema = z
 
 // Validate Google registration requests.
 // The controller must verify the Google ID token.
-const googleRegisterSchema = z.object({
-  credential: z
-    .string()
-    .min(1, "Google authentication is required"),
 
-  // Public Google signup currently supports
-  // Business Owner accounts only.
-  role: z.enum(["business_owner"], {
-    errorMap: () => ({
-      message:
-        "Google registration is currently available for Business Owners only.",
+const googleRegisterSchema = z
+  .object({
+    credential: z
+      .string()
+      .min(1, "Google authentication is required"),
+
+    role: z.enum(REGISTRATION_ROLES, {
+      errorMap: () => ({
+        message: "Choose an account type",
+      }),
     }),
-  }),
 
-  business,
-});
+    business: business.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "business_owner" && !data.business) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["business"],
+        message: "Business details are required.",
+      });
+    }
+
+    if (
+      ["accountant", "auditor"].includes(data.role) &&
+      data.business
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["business"],
+        message:
+          "Professional accounts do not create a business during registration.",
+      });
+    }
+  });
+
 
 // --------------------------------------------------
 // LOGIN

@@ -154,3 +154,35 @@ CREATE TABLE IF NOT EXISTS user_google_accounts (
 
 CREATE INDEX IF NOT EXISTS idx_google_accounts_user
 ON user_google_accounts(user_id);
+
+-- Auditor access is granted by a business owner.
+-- Registering as an auditor does not grant business access.
+
+CREATE TABLE IF NOT EXISTS auditor_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  auditor_user_id INTEGER NOT NULL
+    REFERENCES users(id) ON DELETE CASCADE,
+
+  business_profile_id INTEGER NOT NULL
+    REFERENCES business_profiles(id) ON DELETE CASCADE,
+
+  assigned_by INTEGER NOT NULL
+    REFERENCES users(id),
+
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'revoked')),
+
+  assigned_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  revoked_at TEXT,
+
+  UNIQUE (auditor_user_id, business_profile_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_auditor_assignments_user
+ON auditor_assignments(auditor_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_auditor_assignments_business
+ON auditor_assignments(business_profile_id);
+

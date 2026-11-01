@@ -316,51 +316,55 @@ function TransactionReview() {
     return "Unclassified";
   };
   
-const supportedTypes = ["expense", "income","customer_receipt",
-  "supplier_payment",
-  "sales_invoice",
-  "purchase_invoice"];
 
-const canGenerateJournal =
-  supportedTypes.includes(transaction.type) &&
-  Number.isFinite(numericAmount) &&
-  numericAmount > 0 &&
-  !transaction.vatApplicable &&
-  paymentAccount !== "Unclassified" &&
-  categoryAccount !== "Unclassified" &&
-  paymentAccount.toLowerCase() !==
-    categoryAccount.toLowerCase();
+  // Determine the category account before validating the journal.
+  const categoryAccount = getCategoryAccount();
 
-  const categoryAccount =
-    getCategoryAccount();
+  const supportedTypes = [
+    "expense",
+    "income",
+    "customer_receipt",
+    "supplier_payment",
+    "sales_invoice",
+    "purchase_invoice",
+  ];
 
-  // Builds the journal preview displayed to the user.
-  const journalEntries =
-    isIncomeTransaction
-      ? [
-          {
-            account: paymentAccount,
-            debit: numericAmount,
-            credit: 0,
-          },
-          {
-            account: categoryAccount,
-            debit: 0,
-            credit: numericAmount,
-          },
-        ]
-      : [
-          {
-            account: categoryAccount,
-            debit: numericAmount,
-            credit: 0,
-          },
-          {
-            account: paymentAccount,
-            debit: 0,
-            credit: numericAmount,
-          },
-        ];
+  const canGenerateJournal =
+    supportedTypes.includes(transaction.type) &&
+    Number.isFinite(numericAmount) &&
+    numericAmount > 0 &&
+    !transaction.vatApplicable &&
+    paymentAccount !== "Unclassified" &&
+    categoryAccount !== "Unclassified" &&
+    paymentAccount.toLowerCase() !==
+      categoryAccount.toLowerCase();
+
+  // Build the journal preview displayed to the user.
+  const journalEntries = isIncomeTransaction
+    ? [
+        {
+          account: paymentAccount,
+          debit: numericAmount,
+          credit: 0,
+        },
+        {
+          account: categoryAccount,
+          debit: 0,
+          credit: numericAmount,
+        },
+      ]
+    : [
+        {
+          account: categoryAccount,
+          debit: numericAmount,
+          credit: 0,
+        },
+        {
+          account: paymentAccount,
+          debit: 0,
+          credit: numericAmount,
+        },
+      ];
 
   // -------------------------------------------------
   // CONFIRM AND POST

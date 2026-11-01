@@ -1,9 +1,6 @@
 
 import { useState } from "react";
-import {
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import AuthLayout from "../components/AuthLayout.jsx";
 import Button from "../components/Button.jsx";
@@ -21,40 +18,35 @@ export default function RoleSelection() {
   const isGoogle = draft.authMethod === "google";
 
   const [role, setRole] = useState(
-    isGoogle ? "business_owner" : draft.role || ""
+    draft.role && ROLES.some((r) => r.id === draft.role)
+      ? draft.role
+      : ""
   );
 
   const [error, setError] = useState("");
 
+  // Both password and Google signup require account information.
   if (!draft.account) {
     return <Navigate to="/signup" replace />;
   }
 
+  // Google signup requires an identity credential.
   if (isGoogle && !draft.googleCredential) {
     return <Navigate to="/signup" replace />;
   }
 
-  const availableRoles = isGoogle
-    ? ROLES.filter((r) => r.id === "business_owner")
-    : ROLES;
-
   const submit = (event) => {
     event.preventDefault();
 
-    const selectedRole = isGoogle
-      ? "business_owner"
-      : role;
-
-    if (!selectedRole) {
+    if (!ROLES.some((r) => r.id === role)) {
       setError(
         "Choose the account type that fits you best."
       );
       return;
     }
 
-    update({
-      role: selectedRole,
-    });
+    // Save the selected role without granting permissions.
+    update({ role });
 
     navigate("/signup/business");
   };
@@ -62,12 +54,11 @@ export default function RoleSelection() {
   return (
     <AuthLayout
       title="How will you use VoiceBooks?"
-      subtitle={
-        isGoogle
-          ? "Google registration is available for Business Owners."
-          : "Your account type decides which dashboard you see. You can't change it yourself later, so choose carefully."
-      }
-      steps={{ current: 2, labels: SIGNUP_STEPS }}
+      subtitle="Choose your account type. Access to another business requires authorisation."
+      steps={{
+        current: 2,
+        labels: SIGNUP_STEPS,
+      }}
     >
       <form onSubmit={submit} noValidate>
         <fieldset className="choices">
@@ -75,33 +66,22 @@ export default function RoleSelection() {
             Account type
           </legend>
 
-          {availableRoles.map((r) => (
+          {ROLES.map((r) => (
             <label
               key={r.id}
               className={`choice${
-                (isGoogle
-                  ? "business_owner"
-                  : role) === r.id
-                  ? " selected"
-                  : ""
+                role === r.id ? " selected" : ""
               }`}
             >
               <input
                 type="radio"
                 name="role"
                 value={r.id}
-                checked={
-                  (isGoogle
-                    ? "business_owner"
-                    : role) === r.id
-                }
+                checked={role === r.id}
                 onChange={() => {
-                  if (!isGoogle) {
-                    setRole(r.id);
-                    setError("");
-                  }
+                  setRole(r.id);
+                  setError("");
                 }}
-                disabled={isGoogle}
               />
 
               <span className="choice-title">

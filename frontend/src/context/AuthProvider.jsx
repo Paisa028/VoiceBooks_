@@ -121,6 +121,7 @@ export function AuthProvider({ children }) {
     return loggedInUser;
   }, []);
 
+  
   // Register with Google using the selected account role.
   const googleRegister = useCallback(
     async ({ credential, role, business }) => {
@@ -130,40 +131,42 @@ export function AuthProvider({ children }) {
         );
       }
 
-      if (!role) {
+      const allowedRoles = [
+        "business_owner",
+        "accountant",
+        "auditor",
+      ];
+
+      if (!allowedRoles.includes(role)) {
         throw new Error(
-          "Please select an account type."
+          "Please select a valid account type."
         );
       }
 
-      // The current Google signup endpoint supports
-      // public registration for Business Owners only.
-      if (role !== "business_owner") {
-        const error = new Error(
-          "Google registration for this account type " +
-          "requires an authorised registration flow."
+      // Business Owners must provide business information.
+      if (role === "business_owner" && !business) {
+        throw new Error(
+          "Business information is required."
         );
-
-        error.status = 403;
-        error.errors = {
-          role: "This account type cannot be registered directly.",
-        };
-
-        throw error;
       }
 
+      // Professional accounts do not create businesses.
+      const payload = {
+        credential,
+        role,
+        ...(role === "business_owner"
+          ? { business }
+          : {}),
+      };
+
+      // Verify the Google identity through the backend.
       const registeredUser = await googleRequest(
         "register",
-        {
-          credential,
-          role,
-          business,
-        }
+        payload
       );
 
+      // Never accept an unexpected account role.
       if (registeredUser.role !== role) {
-        // Never store an unexpected role in the frontend state.
-        // The backend must enforce the role restriction.
         throw new Error(
           "The registered account type does not match the selected role."
         );
@@ -179,6 +182,10 @@ export function AuthProvider({ children }) {
   // Sign out of VoiceBooks.
   const logout = useCallback(async () => {
     await api.logout();
+
+    // Prevent automatic Google account selection after logout.
+    window.google?.accounts?.id?.disableAutoSelect();
+
     setUser(null);
   }, []);
 
@@ -191,6 +198,7 @@ export function AuthProvider({ children }) {
     return refreshedUser || null;
   }, []);
 
+  // Share authentication state and actions.
   const value = useMemo(
     () => ({
       user,
